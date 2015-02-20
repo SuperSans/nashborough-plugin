@@ -28,6 +28,10 @@ public class Application {
     private String experience;
     private String album;
     
+    public Application(State state) {
+        this.state = state;
+    }
+    
     public Application(Player player) {
         this.username = player.getDisplayName();
         
@@ -97,7 +101,7 @@ public class Application {
             writeLine(writer, album);
             
         } catch(Exception e) {
-            
+            e.printStackTrace();
         } finally {
             try {
                 writer.close();

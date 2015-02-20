@@ -6,3 +6,7 @@ commands:
   apply:
     description: sends in an application to become an official Nashbro
     usage: /apply
+  
+  reviewapps:
+    desciption: review pending applications and approve or deny them
+    usage: /reviewapps
