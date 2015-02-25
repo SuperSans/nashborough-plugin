@@ -8,5 +8,6 @@ commands:
     usage: /apply
   
   reviewapps:
-    desciption: review pending applications and approve or deny them
+    description: review pending applications and approve or deny them
     usage: /reviewapps
+    permission: op

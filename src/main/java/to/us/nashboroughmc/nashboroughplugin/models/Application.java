@@ -9,6 +9,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.UUID;
 import org.bukkit.entity.Player;
 
 /**
@@ -22,6 +23,7 @@ public class Application {
     }
     
     private State  state;
+    private UUID   uuid;
     private String username;
     private String age;
     private String country;
@@ -33,6 +35,7 @@ public class Application {
     }
     
     public Application(Player player) {
+        this.uuid     = player.getUniqueId();
         this.username = player.getDisplayName();
         
         this.state = State.STARTED;
@@ -44,6 +47,14 @@ public class Application {
 
     public void setState(State state) {
         this.state = state;
+    }
+    
+    public UUID getUUID() {
+        return uuid;
+    }
+    
+    public void setUUID(UUID uuid) {
+        this.uuid = uuid;
     }
 
     public String getUsername() {
@@ -94,6 +105,7 @@ public class Application {
             
             writer = new BufferedWriter(new FileWriter(applicationsFile, true));
             
+            writeLine(writer, uuid.toString());
             writeLine(writer, username);
             writeLine(writer, country);
             writeLine(writer, age);
