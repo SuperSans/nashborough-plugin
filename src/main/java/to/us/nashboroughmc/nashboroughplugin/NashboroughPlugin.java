@@ -5,6 +5,7 @@
  */
 package to.us.nashboroughmc.nashboroughplugin;
 
+import org.bukkit.plugin.PluginManager;
 import to.us.nashboroughmc.nashboroughplugin.listeners.ApplicationListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -15,7 +16,9 @@ public class NashboroughPlugin extends JavaPlugin {
     @Override 
     public void onEnable() {
         applicationListener = new ApplicationListener();
-        getServer().getPluginManager().registerEvents(applicationListener, this);
+        
+        PluginManager pluginManager = getServer().getPluginManager();
+        pluginManager.registerEvents(applicationListener, this);
         
         getCommand("apply").setExecutor(applicationListener);
         getCommand("reviewapps").setExecutor(applicationListener);

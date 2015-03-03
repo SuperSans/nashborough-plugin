@@ -31,9 +31,7 @@ public class Application {
     private String album;
     private boolean isInformed;
     
-    public Application(State state) {
-        this.state = state;
-    }
+    public Application() {}
     
     public Application(Player player) {
         
@@ -122,6 +120,15 @@ public class Application {
             writeLine(writer, experience);
             writeLine(writer, album);
             writeLine(writer, String.valueOf(isInformed));
+            
+            switch(state) {
+                case PENDING:  writeLine(writer, "pending");  break;
+                case ACCEPTED: writeLine(writer, "accepted"); break;
+                case DENIED:   writeLine(writer, "denied");   break;
+                default:       writeLine(writer, "default");  break;
+            }
+            
+            writer.newLine();
             
         } catch(Exception e) {
             e.printStackTrace();

@@ -20,7 +20,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import to.us.nashboroughmc.nashboroughplugin.Utils;
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
 
@@ -37,6 +36,8 @@ public class ApplicationListener implements CommandExecutor, Listener {
     private static final int EXPERIENCE = 4;
     private static final int ALBUM      = 5;
     private static final int INFORMED   = 6;
+    private static final int STATE      = 7;
+    private static final int NEWLINE    = 8;
     
     private static final String COMMAND_APPLY       = "apply";
     private static final String COMMAND_REVIEW_APPS = "reviewapps";
@@ -255,9 +256,9 @@ public class ApplicationListener implements CommandExecutor, Listener {
                     case ALBUM:
                         application.setAlbum(message);
                         player.sendMessage(message);
+                        application.setState(Application.State.PENDING);
                         application.submit();
                         Utils.sendMessage(player, "That's all! We'll get to your application as soon as possible.");
-                        application.setState(Application.State.PENDING);
                         pendingApplications.add(application);
                         
                         for(Player op : getServer().getOnlinePlayers()) {
@@ -320,7 +321,7 @@ public class ApplicationListener implements CommandExecutor, Listener {
             while((line = reader.readLine()) != null) {
                 switch(lineIndex++) {
                     case UUID:
-                        applications.add(new Application(Application.State.PENDING));
+                        applications.add(new Application());
                         applications.get(appIndex).setUUID(java.util.UUID.fromString(line));
                         break;
                         
@@ -328,10 +329,21 @@ public class ApplicationListener implements CommandExecutor, Listener {
                     case COUNTRY:    applications.get(appIndex).setCountry(line);    break;
                     case AGE:        applications.get(appIndex).setAge(line);        break;
                     case EXPERIENCE: applications.get(appIndex).setExperience(line); break;
-                    case ALBUM:      applications.get(appIndex).setAlbum(line);    break;
+                    case ALBUM:      applications.get(appIndex).setAlbum(line);      break;
+                    case INFORMED:   applications.get(appIndex).setIsInformed(Boolean.getBoolean(line)); break;
                         
-                    case INFORMED:
-                        applications.get(appIndex++).setIsInformed(Boolean.getBoolean(line));
+                    case STATE:
+                        Application application = applications.get(appIndex);
+                        switch(line) {
+                            case "pending":  application.setState(Application.State.PENDING);  break;
+                            case "accepted": application.setState(Application.State.ACCEPTED); break;
+                            case "denied":   application.setState(Application.State.DENIED);   break;
+                            default:         application.setState(Application.State.STARTED);  break;
+                        }
+                    break;
+                        
+                    case NEWLINE:
+                        appIndex++;
                         lineIndex = 0;
                         break;
                 }
