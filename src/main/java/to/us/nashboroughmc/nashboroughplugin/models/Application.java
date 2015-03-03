@@ -29,16 +29,18 @@ public class Application {
     private String country;
     private String experience;
     private String album;
+    private boolean isInformed;
     
     public Application(State state) {
         this.state = state;
     }
     
     public Application(Player player) {
-        this.uuid     = player.getUniqueId();
-        this.username = player.getDisplayName();
         
-        this.state = State.STARTED;
+        this.uuid       = player.getUniqueId();
+        this.username   = player.getDisplayName();
+        this.state      = State.STARTED;
+        this.isInformed = false;
     }
 
     public State getState() {
@@ -97,6 +99,14 @@ public class Application {
         this.album = album;
     }
     
+    public void setIsInformed(boolean isInformed) {
+        this.isInformed = isInformed;
+    }
+    
+    public boolean isInformed() {
+        return isInformed;
+    }
+    
     public void submit() {
         BufferedWriter writer = null;
         
@@ -111,6 +121,7 @@ public class Application {
             writeLine(writer, age);
             writeLine(writer, experience);
             writeLine(writer, album);
+            writeLine(writer, String.valueOf(isInformed));
             
         } catch(Exception e) {
             e.printStackTrace();

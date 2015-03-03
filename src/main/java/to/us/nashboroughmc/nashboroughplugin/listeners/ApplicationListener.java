@@ -10,20 +10,25 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
-import static org.bukkit.Bukkit.getLogger;
 import static org.bukkit.Bukkit.getServer;
+import org.bukkit.GameMode;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import to.us.nashboroughmc.nashboroughplugin.Utils;
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
 
 /**
  *
  * @author Jacob
  */
-public class ApplicationListener implements Listener {
+public class ApplicationListener implements CommandExecutor, Listener {
     
     private static final int UUID       = 0;
     private static final int USERNAME   = 1;
@@ -31,21 +36,23 @@ public class ApplicationListener implements Listener {
     private static final int AGE        = 3;
     private static final int EXPERIENCE = 4;
     private static final int ALBUM      = 5;
+    private static final int INFORMED   = 6;
     
     private static final String COMMAND_APPLY       = "apply";
     private static final String COMMAND_REVIEW_APPS = "reviewapps";
+    private static final String COMMAND_REVIEW_APP  = "reviewapp";
     
+    private static final String MESSAGE_NO_APP   = "Looks like you haven't filled out an application yet! To start on your path to membership, use /apply to tell us about yourself.";
     private static final String MESSAGE_PENDING  = "Looks like you have an application pending. We will get to it as soon as possible.";
     private static final String MESSAGE_ACCEPTED = "Congratulations! Your application accepted.";
     private static final String MESSAGE_DENIED   = "Sorry, your application was denied.";
     
     private final List<Application> applications;
-    private List<Application> pendingApplications;
-    private Player reviewingPlayer = null;
-    private int reviewIndex;
+    private final List<Application> pendingApplications;
     
     public ApplicationListener() {
-        applications = new ArrayList<>();
+        applications        = new ArrayList<>();
+        pendingApplications = new ArrayList<>();
         
         loadSavedApplications();
     }
@@ -65,56 +72,134 @@ public class ApplicationListener implements Listener {
     public void onJoinEvent(PlayerJoinEvent ev) {
         Player player = ev.getPlayer();
         
+        Application application = getApplicationForPlayer(player);
+        
+        if(application == null) {
+            Utils.sendMessage(player, MESSAGE_NO_APP);
+            
+        } else {
+            switch(application.getState()) {
+                case PENDING:
+                    Utils.sendMessage(player, MESSAGE_PENDING);
+                break;
+                    
+                case ACCEPTED:
+                    if(!application.isInformed()) {
+                        Utils.sendMessage(player, MESSAGE_ACCEPTED);
+                        player.setGameMode(GameMode.SURVIVAL);
+                    }
+                break;
+                    
+                case DENIED:
+                    if(!application.isInformed()) {
+                        Utils.sendMessage(player, MESSAGE_DENIED);
+                    }
+                break;
+            }
+        }
+        
         if(player.isOp()) {
-            if(applications.size() > 0) {
-                player.sendMessage("Applications awaiting review: " + applications.size());
-                player.sendMessage("Use \"/reviewapps\" to review them");
+            if(pendingApplications.size() > 0) {
+                Utils.sendMessage(player, "Applications awaiting review: " + (pendingApplications.size()));
+                Utils.sendMessage(player, "Use \"/reviewapps\" to review them");
             }
         }
     }
-    
-    public boolean handleCommand(Player player, String command) {
-        
-        switch(command) {
-            case COMMAND_APPLY:
-                Application application = getApplicationForPlayer(player);
-            
-                if(application != null) {
-                    switch(application.getState()) {
-                        
-                        case PENDING:  player.sendMessage(MESSAGE_PENDING);  break;
-                        case ACCEPTED: player.sendMessage(MESSAGE_ACCEPTED); break;
-                        case DENIED:   player.sendMessage(MESSAGE_DENIED);   break;
-                        default: handleMessage(player, null); break;
-                    }
 
-                //Create a new application
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        
+        switch(command.getName()) {
+            case COMMAND_APPLY:
+                if(sender instanceof Player) {
+                    Player player = (Player)sender;
+                    
+                    Application application = getApplicationForPlayer(player);
+            
+                    if(application != null) {
+                        switch(application.getState()) {
+
+                            case PENDING:  Utils.sendMessage(player, MESSAGE_PENDING);  break;
+                            case ACCEPTED: Utils.sendMessage(player, MESSAGE_ACCEPTED); break;
+                            case DENIED:   Utils.sendMessage(player, MESSAGE_DENIED);   break;
+                            default: handleMessage(player, null); break;
+                        }
+
+                    //Create a new application
+                    } else {
+                        applications.add(new Application(player));
+                        handleMessage(player, null);
+                    }
                 } else {
-                    applications.add(new Application(player));
-                    handleMessage(player, null);
+                    Utils.sendMessage(sender, "Only players can apply.");
                 }
                 
                 break;
                 
             case COMMAND_REVIEW_APPS:
-                if(reviewingPlayer == null) {
-                    pendingApplications = getPendingApplications();
-                    
-                    
-                    if(pendingApplications.size() > 0) {
-                        reviewingPlayer = player;
-                        reviewIndex = 0;
-                        displayApplication(player, pendingApplications.get(reviewIndex));
-                        
-                    } else {
-                        player.sendMessage("There are no pending applications at this time.");
-                        pendingApplications = null;
-                    }
+                if(pendingApplications.isEmpty()) {
+                    Utils.sendMessage(sender, "There are no applications awaiting review.");
                     
                 } else {
-                    player.sendMessage(reviewingPlayer.getDisplayName() + " is currently reviewing applications.");
+                    
+                    for(Application pendingApplication : pendingApplications) {
+                        Utils.sendMessage(sender, pendingApplication.getUsername());
+                    }
+                    
+                    Utils.sendMessage(sender, "Use \"/reviewapp <username>\" to review an application.");
                 }
                 
+                break;
+                
+            case COMMAND_REVIEW_APP:
+                if(args.length > 0 && args.length < 3) {
+                    Application application = getApplicationForUsername(args[0]);
+                    
+                    if(application == null) {
+                        Utils.sendMessage(sender, "Could not find an application for that username");
+                        
+                    } else if(args.length == 1) {
+                        displayApplication(sender, application);
+                        Utils.sendMessage(sender, "Use \"/reviewapp <username> [verdict]\" to accept or deny this application.");
+                
+                    } else {
+                        Player player = getServer().getPlayer(application.getUUID());
+                        
+                        switch(args[1]) {
+                            case "accept":
+                                application.setState(Application.State.ACCEPTED);
+                                Utils.sendMessage(sender, args[0] + " has been accepted.");
+                                
+                                if(player != null && player.isOnline()) {
+                                    Utils.sendMessage(player, MESSAGE_ACCEPTED);
+                                    
+                                    if(player.getGameMode().equals(GameMode.ADVENTURE)) {
+                                        player.setGameMode(GameMode.SURVIVAL);
+                                    }
+                                    
+                                    pendingApplications.remove(application);
+                                    application.setIsInformed(true);
+                                }
+                                break;
+                                
+                            case "deny":
+                                application.setState(Application.State.DENIED);
+                                Utils.sendMessage(sender, args[0] + " has been denied");
+                                
+                                if(player != null && player.isOnline()) {
+                                    Utils.sendMessage(player, MESSAGE_DENIED);
+                                    
+                                    pendingApplications.remove(application);
+                                    application.setIsInformed(true);
+                                }
+                                break;
+                                
+                            default:
+                                Utils.sendMessage(sender, "Use \"accept\" or \"deny.\"");
+                                break;
+                        }
+                    }
+                }
                 break;
                 
             default:
@@ -124,104 +209,61 @@ public class ApplicationListener implements Listener {
         return true;
     }
     
-    private void displayApplication(Player player, Application application) {
+    private void displayApplication(CommandSender sender, Application application) {
         
-        player.sendMessage("Name: "       + application.getUsername());
-        player.sendMessage("Age: "        + application.getAge());
-        player.sendMessage("Experience: " + application.getExperience());
-        player.sendMessage("Country: "    + application.getCountry());
-        player.sendMessage("Album: "      + application.getAlbum());
-        
-        player.sendMessage("Type \"accept,\", \"deny\", or \"cancel.\"");
+        Utils.sendMessage(sender, "Name: "       + application.getUsername());
+        Utils.sendMessage(sender, "Age: "        + application.getAge());
+        Utils.sendMessage(sender, "Experience: " + application.getExperience());
+        Utils.sendMessage(sender, "Country: "    + application.getCountry());
+        Utils.sendMessage(sender, "Album: "      + application.getAlbum());
     }
     
     private boolean handleMessage(Player player, String message) {
         
-        getLogger().info("0");
-        
-        if(reviewingPlayer != null && reviewingPlayer.getUniqueId().equals(player.getUniqueId())) {
-            getLogger().info("1");
-            Application application = pendingApplications.get(reviewIndex++);
-            Player applicant = getServer().getPlayer(application.getUUID());
-            getLogger().info("2");
-            switch(message.toLowerCase()) {
-                case "accept":
-                    application.setState(Application.State.ACCEPTED);
-                    if(applicant != null && applicant.isOnline()) {
-                        applicant.sendMessage(MESSAGE_ACCEPTED);
-                    }
-                break;
-                    
-                case "deny":
-                    application.setState(Application.State.DENIED);
-                    if(applicant != null && applicant.isOnline()) {
-                        applicant.sendMessage(MESSAGE_DENIED);
-                    }
-                break;
-                    
-                case "skip": break;
-                    
-                case "cancel":
-                    reviewIndex = 0;
-                    pendingApplications = null;
-                    reviewingPlayer = null;
-                    return true;
-                    
-                default: return false;
-            }
-            
-            if(reviewIndex >= pendingApplications.size()) {
-                player.sendMessage("That's all for now! Thank you.");
-                
-                reviewIndex = 0;
-                pendingApplications = null;
-                reviewingPlayer = null;
-            } else {
-                player.sendMessage((pendingApplications.size()-1-reviewIndex) + " applications remaining.");
-            }
-            
-            return true;
-        }
-        
-        //Else, look for this players application
+        //Look for this players application
         for(Application application : applications) {
             
             if(application.getUsername().equals(player.getDisplayName())) {
                 switch(application.getState()) {
                     case STARTED:
-                        player.sendMessage("Thank you for choosing Nashborough!");
-                        player.sendMessage("What country to do you live in?");
+                        Utils.sendMessage(player, "Thank you for choosing Nashborough!");
+                        Utils.sendMessage(player, "What country to do you live in?");
                         application.setState(Application.State.COUNTRY);
                         break;
                         
                     case COUNTRY:
                         application.setCountry(message);
-                        player.sendMessage("How old are you?");
+                        player.sendMessage(message);
+                        Utils.sendMessage(player, "How old are you?");
                         application.setState(Application.State.AGE);
                         break;
                         
                     case AGE:
                         application.setAge(message);
-                        player.sendMessage("How long have you been playing Minecraft for?");
+                        player.sendMessage(message);
+                        Utils.sendMessage(player, "How long have you been playing Minecraft for?");
                         application.setState(Application.State.EXPERIENCE);
                         break;
                         
                     case EXPERIENCE:
                         application.setExperience(message);
-                        player.sendMessage("If you would like, provide us with a link to an album of your previous builds.");
+                        player.sendMessage(message);
+                        Utils.sendMessage(player, "If you would like, provide us with a link to an album of your previous builds.");
                         application.setState(Application.State.ALBUM);
                         break;
                         
                     case ALBUM:
                         application.setAlbum(message);
+                        player.sendMessage(message);
                         application.submit();
-                        player.sendMessage("That's all! We'll get to your application as soon as possible.");
+                        Utils.sendMessage(player, "That's all! We'll get to your application as soon as possible.");
                         application.setState(Application.State.PENDING);
+                        pendingApplications.add(application);
                         
-                        for(Player p : getServer().getOnlinePlayers()) {
-                            if(p.isOp()) {
-                                p.sendMessage("A new application was submitted!");
-                                p.sendMessage("Applications awaiting review: " + getPendingApplications().size());
+                        for(Player op : getServer().getOnlinePlayers()) {
+                            if(op.isOp()) {
+                                Utils.sendMessage(op, "A new application was submitted!");
+                                Utils.sendMessage(op, "Applications awaiting review: " + pendingApplications.size());
                             }
                         }
                         
@@ -241,22 +283,19 @@ public class ApplicationListener implements Listener {
         return false;
     }
     
-    private List<Application> getPendingApplications() {
-        List<Application> pApplications = new ArrayList<>();
-        
-        int i = 0;
-        for(Application application : applications) {
-            if(application.getState() == Application.State.PENDING) {
-                pApplications.add(application);
-            }
-        }
-        
-        return pApplications;
-    }
-    
     private Application getApplicationForPlayer(Player player) {
         for(Application application: applications) {
             if(application.getUsername().equals(player.getDisplayName())) {
+                return application;
+            }
+        }
+        
+        return null;
+    }
+    
+    private Application getApplicationForUsername(String username) {
+        for(Application application: applications) {
+            if(application.getUsername().equalsIgnoreCase(username)) {
                 return application;
             }
         }
@@ -289,9 +328,10 @@ public class ApplicationListener implements Listener {
                     case COUNTRY:    applications.get(appIndex).setCountry(line);    break;
                     case AGE:        applications.get(appIndex).setAge(line);        break;
                     case EXPERIENCE: applications.get(appIndex).setExperience(line); break;
+                    case ALBUM:      applications.get(appIndex).setAlbum(line);    break;
                         
-                    case ALBUM:
-                        applications.get(appIndex++).setAlbum(line);
+                    case INFORMED:
+                        applications.get(appIndex++).setIsInformed(Boolean.getBoolean(line));
                         lineIndex = 0;
                         break;
                 }
@@ -305,6 +345,12 @@ public class ApplicationListener implements Listener {
             } catch(Exception e) {
                 
             }
+            
+            for(Application application : applications) {
+            if(application.getState() == Application.State.PENDING) {
+                pendingApplications.add(application);
+            }
+        }
         }
     }
 }

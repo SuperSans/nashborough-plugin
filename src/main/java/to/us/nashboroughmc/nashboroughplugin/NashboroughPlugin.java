@@ -6,9 +6,6 @@
 package to.us.nashboroughmc.nashboroughplugin;
 
 import to.us.nashboroughmc.nashboroughplugin.listeners.ApplicationListener;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class NashboroughPlugin extends JavaPlugin {
@@ -19,19 +16,9 @@ public class NashboroughPlugin extends JavaPlugin {
     public void onEnable() {
         applicationListener = new ApplicationListener();
         getServer().getPluginManager().registerEvents(applicationListener, this);
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         
-        if(sender instanceof Player) {
-            Player player = (Player)sender;
-            
-            if(applicationListener.handleCommand(player, command.getName())) {
-                return true;
-            }
-        }
-        
-        return false;
+        getCommand("apply").setExecutor(applicationListener);
+        getCommand("reviewapps").setExecutor(applicationListener);
+        getCommand("reviewapp").setExecutor(applicationListener);
     }
 }

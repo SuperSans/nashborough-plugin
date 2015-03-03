@@ -11,3 +11,8 @@ commands:
     description: review pending applications and approve or deny them
     usage: /reviewapps
     permission: op
+    
+  reviewapp:
+    description: review application of the player given
+    usage: /reviewapp <username> [verdict]
+    permission: op
