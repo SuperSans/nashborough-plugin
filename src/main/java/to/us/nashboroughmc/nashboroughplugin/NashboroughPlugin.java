@@ -22,6 +22,5 @@ public class NashboroughPlugin extends JavaPlugin {
         
         getCommand("apply").setExecutor(applicationListener);
         getCommand("reviewapps").setExecutor(applicationListener);
-        getCommand("reviewapp").setExecutor(applicationListener);
     }
 }

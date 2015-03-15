@@ -6,10 +6,17 @@
 package to.us.nashboroughmc.nashboroughplugin.listeners;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
+import static org.bukkit.Bukkit.getLogger;
 import static org.bukkit.Bukkit.getServer;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
@@ -22,6 +29,10 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import to.us.nashboroughmc.nashboroughplugin.Utils;
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
+import static to.us.nashboroughmc.nashboroughplugin.models.Application.State.AGE;
+import static to.us.nashboroughmc.nashboroughplugin.models.Application.State.ALBUM;
+import static to.us.nashboroughmc.nashboroughplugin.models.Application.State.COUNTRY;
+import static to.us.nashboroughmc.nashboroughplugin.models.Application.State.EXPERIENCE;
 
 /**
  *
@@ -29,33 +40,27 @@ import to.us.nashboroughmc.nashboroughplugin.models.Application;
  */
 public class ApplicationListener implements CommandExecutor, Listener {
     
-    private static final int UUID       = 0;
-    private static final int USERNAME   = 1;
-    private static final int COUNTRY    = 2;
-    private static final int AGE        = 3;
-    private static final int EXPERIENCE = 4;
-    private static final int ALBUM      = 5;
-    private static final int INFORMED   = 6;
-    private static final int STATE      = 7;
-    private static final int NEWLINE    = 8;
+    private static final String FILE_PENDING_APPLICATIONS = "pending_applications.txt";
+    private static final String FILE_REVIEWED_APPLICATIONS = "reviewed_applications.txt";
     
     private static final String COMMAND_APPLY       = "apply";
     private static final String COMMAND_REVIEW_APPS = "reviewapps";
-    private static final String COMMAND_REVIEW_APP  = "reviewapp";
     
     private static final String MESSAGE_NO_APP   = "Looks like you haven't filled out an application yet! To start on your path to membership, use /apply to tell us about yourself.";
     private static final String MESSAGE_PENDING  = "Looks like you have an application pending. We will get to it as soon as possible.";
     private static final String MESSAGE_ACCEPTED = "Congratulations! Your application accepted.";
     private static final String MESSAGE_DENIED   = "Sorry, your application was denied.";
     
-    private final List<Application> applications;
     private final List<Application> pendingApplications;
+    private final List<Application> reviewedApplications;
     
     public ApplicationListener() {
-        applications        = new ArrayList<>();
-        pendingApplications = new ArrayList<>();
         
-        loadSavedApplications();
+        pendingApplications  = new ArrayList<>();
+        reviewedApplications = new ArrayList<>();
+        
+        loadPendingApplications();
+        loadReviewedApplications();
     }
     
     @EventHandler
@@ -81,7 +86,9 @@ public class ApplicationListener implements CommandExecutor, Listener {
         } else {
             switch(application.getState()) {
                 case PENDING:
-                    Utils.sendMessage(player, MESSAGE_PENDING);
+                    if(!application.isInformed()) {
+                        Utils.sendMessage(player, MESSAGE_PENDING);
+                    }
                 break;
                     
                 case ACCEPTED:
@@ -112,25 +119,25 @@ public class ApplicationListener implements CommandExecutor, Listener {
         
         switch(command.getName()) {
             case COMMAND_APPLY:
+                
                 if(sender instanceof Player) {
                     Player player = (Player)sender;
-                    
                     Application application = getApplicationForPlayer(player);
-            
+                    
                     if(application != null) {
                         switch(application.getState()) {
-
-                            case PENDING:  Utils.sendMessage(player, MESSAGE_PENDING);  break;
-                            case ACCEPTED: Utils.sendMessage(player, MESSAGE_ACCEPTED); break;
-                            case DENIED:   Utils.sendMessage(player, MESSAGE_DENIED);   break;
-                            default: handleMessage(player, null); break;
-                        }
-
-                    //Create a new application
+                        case PENDING:  Utils.sendMessage(player, MESSAGE_PENDING);  break;
+                        case ACCEPTED: Utils.sendMessage(player, MESSAGE_ACCEPTED); break;
+                        case DENIED:   Utils.sendMessage(player, MESSAGE_DENIED);   break;
+                            
+                        default: getLogger().info("null");
+                    }
+                        
                     } else {
-                        applications.add(new Application(player));
+                        pendingApplications.add(new Application(player));
                         handleMessage(player, null);
                     }
+                    
                 } else {
                     Utils.sendMessage(sender, "Only players can apply.");
                 }
@@ -138,69 +145,38 @@ public class ApplicationListener implements CommandExecutor, Listener {
                 break;
                 
             case COMMAND_REVIEW_APPS:
-                if(pendingApplications.isEmpty()) {
-                    Utils.sendMessage(sender, "There are no applications awaiting review.");
-                    
-                } else {
-                    
-                    for(Application pendingApplication : pendingApplications) {
-                        Utils.sendMessage(sender, pendingApplication.getUsername());
-                    }
-                    
-                    Utils.sendMessage(sender, "Use \"/reviewapp <username>\" to review an application.");
-                }
                 
-                break;
-                
-            case COMMAND_REVIEW_APP:
-                if(args.length > 0 && args.length < 3) {
-                    Application application = getApplicationForUsername(args[0]);
-                    
-                    if(application == null) {
-                        Utils.sendMessage(sender, "Could not find an application for that username");
-                        
-                    } else if(args.length == 1) {
-                        displayApplication(sender, application);
-                        Utils.sendMessage(sender, "Use \"/reviewapp <username> [verdict]\" to accept or deny this application.");
-                
-                    } else {
-                        Player player = getServer().getPlayer(application.getUUID());
-                        
-                        switch(args[1]) {
-                            case "accept":
-                                application.setState(Application.State.ACCEPTED);
-                                Utils.sendMessage(sender, args[0] + " has been accepted.");
-                                
-                                if(player != null && player.isOnline()) {
-                                    Utils.sendMessage(player, MESSAGE_ACCEPTED);
-                                    
-                                    if(player.getGameMode().equals(GameMode.ADVENTURE)) {
-                                        player.setGameMode(GameMode.SURVIVAL);
-                                    }
-                                    
-                                    pendingApplications.remove(application);
-                                    application.setIsInformed(true);
-                                }
-                                break;
-                                
-                            case "deny":
-                                application.setState(Application.State.DENIED);
-                                Utils.sendMessage(sender, args[0] + " has been denied");
-                                
-                                if(player != null && player.isOnline()) {
-                                    Utils.sendMessage(player, MESSAGE_DENIED);
-                                    
-                                    pendingApplications.remove(application);
-                                    application.setIsInformed(true);
-                                }
-                                break;
-                                
-                            default:
-                                Utils.sendMessage(sender, "Use \"accept\" or \"deny.\"");
-                                break;
+                switch(args.length) {
+                    case 0: 
+                        for(Application application : pendingApplications) {
+                            Utils.sendMessage(sender, application.getUsername());
                         }
-                    }
+                    break;
+                        
+                    case 1:
+                    case 2:
+                        Application application = getApplicationForUsername(args[0]);
+                        
+                        if(application != null) {
+                            if(args.length == 1) {
+                                displayApplication(sender, application);
+                            } else {
+                                
+                                switch(args[1]) {
+                                    case "accept": 
+                                }
+                            }
+                            
+                        } else {
+                            Utils.sendMessage(sender, "Could not find an application for " + args[0]);
+                        }
+                    break;
+                        
+                    default:
+                        Utils.sendMessage(sender, "Usage: /reviewapps [player] [verdict]");
+                    break;
                 }
+                
                 break;
                 
             default:
@@ -212,17 +188,21 @@ public class ApplicationListener implements CommandExecutor, Listener {
     
     private void displayApplication(CommandSender sender, Application application) {
         
-        Utils.sendMessage(sender, "Name: "       + application.getUsername());
+        Utils.sendMessage(sender, "Username: "       + application.getUsername());
         Utils.sendMessage(sender, "Age: "        + application.getAge());
         Utils.sendMessage(sender, "Experience: " + application.getExperience());
         Utils.sendMessage(sender, "Country: "    + application.getCountry());
         Utils.sendMessage(sender, "Album: "      + application.getAlbum());
+        
+        SimpleDateFormat timeFormat = new SimpleDateFormat("MMM d, yyyy 'at' h:mm a z");
+        
+        Utils.sendMessage(sender, "Time Applied: " + timeFormat.format(application.getTimeApplied()));
     }
     
     private boolean handleMessage(Player player, String message) {
         
         //Look for this players application
-        for(Application application : applications) {
+        for(Application application : pendingApplications) {
             
             if(application.getUsername().equals(player.getDisplayName())) {
                 switch(application.getState()) {
@@ -256,10 +236,11 @@ public class ApplicationListener implements CommandExecutor, Listener {
                     case ALBUM:
                         application.setAlbum(message);
                         player.sendMessage(message);
-                        application.setState(Application.State.PENDING);
-                        application.submit();
                         Utils.sendMessage(player, "That's all! We'll get to your application as soon as possible.");
-                        pendingApplications.add(application);
+                        application.setState(Application.State.PENDING);
+                        
+                        application.setTimeApplied(new Date());
+                        savePendingApplications();
                         
                         for(Player op : getServer().getOnlinePlayers()) {
                             if(op.isOp()) {
@@ -285,7 +266,13 @@ public class ApplicationListener implements CommandExecutor, Listener {
     }
     
     private Application getApplicationForPlayer(Player player) {
-        for(Application application: applications) {
+        for(Application application : reviewedApplications) {
+            if(application.getUsername().equals(player.getDisplayName())) {
+                return application;
+            }
+        }
+        
+        for(Application application : pendingApplications) {
             if(application.getUsername().equals(player.getDisplayName())) {
                 return application;
             }
@@ -295,7 +282,13 @@ public class ApplicationListener implements CommandExecutor, Listener {
     }
     
     private Application getApplicationForUsername(String username) {
-        for(Application application: applications) {
+        for(Application application : reviewedApplications) {
+            if(application.getUsername().equalsIgnoreCase(username)) {
+                return application;
+            }
+        }
+        
+        for(Application application : pendingApplications) {
             if(application.getUsername().equalsIgnoreCase(username)) {
                 return application;
             }
@@ -304,12 +297,78 @@ public class ApplicationListener implements CommandExecutor, Listener {
         return null;
     }
     
-    private void loadSavedApplications() {
+    private void savePendingApplications() {
+        BufferedWriter writer = null;
+        
+        try {
+            File applicationsFile = new File(FILE_PENDING_APPLICATIONS);
+            if(!applicationsFile.exists()) {
+                applicationsFile.createNewFile();
+            }
+            
+            writer = new BufferedWriter(new FileWriter(applicationsFile, false));
+            
+            for(Application application : pendingApplications) {
+                
+                writeLine(writer, application.getUUID().toString());
+                writeLine(writer, application.getUsername());
+                writeLine(writer, application.getCountry());
+                writeLine(writer, application.getAge());
+                writeLine(writer, application.getExperience());
+                writeLine(writer, application.getAlbum());
+                writeLine(writer, new SimpleDateFormat().format(application.getTimeApplied()));
+                writer.newLine();
+            }
+            
+            writer.close();
+            
+        } catch (Exception e) {
+            
+        }
+    }
+    
+    private void loadPendingApplications() {
+        
+        try {
+            File applicationsFile = new File(FILE_PENDING_APPLICATIONS);
+            if(!applicationsFile.exists()) {
+                applicationsFile.createNewFile();
+            }
+            
+            BufferedReader reader = new BufferedReader(new FileReader(applicationsFile));
+            
+            String line;
+            Application application;
+            while((line = reader.readLine()) != null) {
+                application = new Application();
+                
+                application.setUUID(UUID.fromString(line));
+                application.setUsername(reader.readLine());
+                application.setCountry(reader.readLine());
+                application.setAge(reader.readLine());
+                application.setExperience(reader.readLine());
+                application.setAlbum(reader.readLine());
+                application.setTimeApplied(new SimpleDateFormat().parse(reader.readLine()));
+                application.setState(Application.State.PENDING);
+                
+                pendingApplications.add(application);
+            }
+            reader.close();
+            
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void saveReviewedApplications() {
+        
+    }
+    
+    private void loadReviewedApplications() {
         BufferedReader reader = null;
         
         try {
-            File applicationsFile = new File("pending_applications.txt");
-            
+            File applicationsFile = new File(FILE_REVIEWED_APPLICATIONS);
             if(!applicationsFile.exists()) {
                 applicationsFile.createNewFile();
             }
@@ -317,52 +376,30 @@ public class ApplicationListener implements CommandExecutor, Listener {
             reader = new BufferedReader(new FileReader(applicationsFile));
             
             String line;
-            int lineIndex = 0, appIndex = 0;
+            Application application;
             while((line = reader.readLine()) != null) {
-                switch(lineIndex++) {
-                    case UUID:
-                        applications.add(new Application());
-                        applications.get(appIndex).setUUID(java.util.UUID.fromString(line));
-                        break;
-                        
-                    case USERNAME:   applications.get(appIndex).setUsername(line);   break;
-                    case COUNTRY:    applications.get(appIndex).setCountry(line);    break;
-                    case AGE:        applications.get(appIndex).setAge(line);        break;
-                    case EXPERIENCE: applications.get(appIndex).setExperience(line); break;
-                    case ALBUM:      applications.get(appIndex).setAlbum(line);      break;
-                    case INFORMED:   applications.get(appIndex).setIsInformed(Boolean.getBoolean(line)); break;
-                        
-                    case STATE:
-                        Application application = applications.get(appIndex);
-                        switch(line) {
-                            case "pending":  application.setState(Application.State.PENDING);  break;
-                            case "accepted": application.setState(Application.State.ACCEPTED); break;
-                            case "denied":   application.setState(Application.State.DENIED);   break;
-                            default:         application.setState(Application.State.STARTED);  break;
-                        }
-                    break;
-                        
-                    case NEWLINE:
-                        appIndex++;
-                        lineIndex = 0;
-                        break;
-                }
+                application = new Application();
+                
+                application.setUUID(UUID.fromString(line));
+                application.setUsername(reader.readLine());
+                application.setCountry(reader.readLine());
+                application.setAge(reader.readLine());
+                application.setExperience(reader.readLine());
+                application.setAlbum(reader.readLine());
+                application.setState(Application.State.PENDING);
+                
+                reviewedApplications.add(application);
             }
+            
+            reader.close();
             
         } catch(Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                reader.close();
-            } catch(Exception e) {
-                
-            }
-            
-            for(Application application : applications) {
-            if(application.getState() == Application.State.PENDING) {
-                pendingApplications.add(application);
-            }
         }
-        }
+    }
+    
+    private void writeLine(BufferedWriter writer, String text) throws IOException {
+        writer.write(text);
+        writer.newLine();
     }
 }

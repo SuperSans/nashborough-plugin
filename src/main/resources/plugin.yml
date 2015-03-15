@@ -9,10 +9,5 @@ commands:
   
   reviewapps:
     description: review pending applications and approve or deny them
-    usage: /reviewapps
-    permission: op
-    
-  reviewapp:
-    description: review application of the player given
-    usage: /reviewapp <username> [verdict]
+    usage: /reviewapps [username] [verdict]
     permission: op

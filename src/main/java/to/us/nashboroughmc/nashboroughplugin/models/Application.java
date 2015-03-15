@@ -5,10 +5,8 @@
  */
 package to.us.nashboroughmc.nashboroughplugin.models;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.UUID;
 import org.bukkit.entity.Player;
 
@@ -29,6 +27,10 @@ public class Application {
     private String country;
     private String experience;
     private String album;
+    
+    private Date timeApplied;
+    private Date timeReviewed;
+    private String  reviewer;
     private boolean isInformed;
     
     public Application() {}
@@ -96,6 +98,40 @@ public class Application {
     public void setAlbum(String album) {
         this.album = album;
     }
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
+    public Date getTimeApplied() {
+        return timeApplied;
+    }
+
+    public void setTimeApplied(Date timeApplied) {
+        this.timeApplied = timeApplied;
+    }
+
+    public Date getTimeReviewed() {
+        return timeReviewed;
+    }
+
+    public void setTimeReviewed(Date timeReviewed) {
+        this.timeReviewed = timeReviewed;
+    }
+
+    public String getReviewer() {
+        return reviewer;
+    }
+
+    public void setReviewer(String reviewer) {
+        this.reviewer = reviewer;
+    }
+    
+    
     
     public void setIsInformed(boolean isInformed) {
         this.isInformed = isInformed;
@@ -103,45 +139,5 @@ public class Application {
     
     public boolean isInformed() {
         return isInformed;
-    }
-    
-    public void submit() {
-        BufferedWriter writer = null;
-        
-        try {
-            File applicationsFile = new File("pending_applications.txt");
-            
-            writer = new BufferedWriter(new FileWriter(applicationsFile, true));
-            
-            writeLine(writer, uuid.toString());
-            writeLine(writer, username);
-            writeLine(writer, country);
-            writeLine(writer, age);
-            writeLine(writer, experience);
-            writeLine(writer, album);
-            writeLine(writer, String.valueOf(isInformed));
-            
-            switch(state) {
-                case PENDING:  writeLine(writer, "pending");  break;
-                case ACCEPTED: writeLine(writer, "accepted"); break;
-                case DENIED:   writeLine(writer, "denied");   break;
-                default:       writeLine(writer, "default");  break;
-            }
-            
-            writer.newLine();
-            
-        } catch(Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                writer.close();
-            } catch(Exception e) {
-            }
-        }
-    }
-    
-    private void writeLine(BufferedWriter writer, String text) throws IOException {
-        writer.write(text);
-        writer.newLine();
     }
 }
