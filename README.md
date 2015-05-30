@@ -1,3 +1,3 @@
 # Nashborough Application Plugin #
 
-This plugin is a part of the application life-cycle as demonstrated below.
+This plugin is a part of the application lifecycle as demonstrated below.
