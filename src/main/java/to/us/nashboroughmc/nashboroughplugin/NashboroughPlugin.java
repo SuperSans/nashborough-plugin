@@ -19,6 +19,7 @@ public class NashboroughPlugin extends JavaPlugin {
     public void onEnable() {
         applicationListener = new ApplicationListener();
         getServer().getPluginManager().registerEvents(applicationListener, this);
+        //DANK MEMES
     }
 
     @Override
