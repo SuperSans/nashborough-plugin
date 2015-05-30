@@ -9,19 +9,25 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
 import static org.bukkit.Bukkit.getLogger;
 import static org.bukkit.Bukkit.getServer;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
 
 /**
  *
- * @author Jacob
+ * @author Jacob and Greg
  */
 public class ApplicationListener implements Listener {
     
@@ -40,9 +46,8 @@ public class ApplicationListener implements Listener {
     private static final String MESSAGE_DENIED   = "Sorry, your application was denied.";
     
     private final List<Application> applications;
-    private List<Application> pendingApplications;
-    private Player reviewingPlayer = null;
-    private int reviewIndex;
+    private HashMap<UUID, Application> pendingApplications;
+    private HashMap<Player, UUID> reviewingPlayers = new HashMap<Player, UUID>();
     
     public ApplicationListener() {
         applications = new ArrayList<>();
@@ -97,24 +102,42 @@ public class ApplicationListener implements Listener {
                 break;
                 
             case COMMAND_REVIEW_APPS:
-                if(reviewingPlayer == null) {
-                    pendingApplications = getPendingApplications();
-                    
-                    
-                    if(pendingApplications.size() > 0) {
-                        reviewingPlayer = player;
-                        reviewIndex = 0;
-                        displayApplication(player, pendingApplications.get(reviewIndex));
-                        
-                    } else {
-                        player.sendMessage("There are no pending applications at this time.");
-                        pendingApplications = null;
-                    }
-                    
-                } else {
-                    player.sendMessage(reviewingPlayer.getDisplayName() + " is currently reviewing applications.");
+            	ArrayList<Player> reviewers = new ArrayList<Player>();
+            	for (Player reviewer : reviewingPlayers.keySet()){
+            		reviewers.add(reviewer);
+            	}
+                if(reviewers.size() == 1) {
+                	player.sendMessage(reviewers.get(0) + " is also reviewing applications at the moment.");
+                	player.sendMessage(" ");
+                }
+                else if (reviewers.size() == 2){
+                	player.sendMessage(reviewers.get(0) + " and " + reviewers.get(1) + " are also reviewing applications at the moment.");
+                	player.sendMessage(" ");
+                }
+                else if (reviewers.size() > 2){
+                	String message = "";
+                	for (int i = 0; i < reviewers.size() - 2; i++){
+                		message += reviewers.get(i) + ", ";
+                	}
+                	message += "and " + reviewers.get(reviewers.size()-1) + " are also reviewing applications at the moment.";
+                	player.sendMessage(message);
+                	player.sendMessage(" ");
                 }
                 
+                pendingApplications = getPendingApplications();
+                
+                
+                if(pendingApplications.size() > 0) {
+                	Object[] entries = pendingApplications.keySet().toArray();
+                	Application app = (Application) entries[0];
+                    reviewingPlayers.put(player, app.getUUID());
+                    displayApplication(player, app);
+                    
+                } else {
+                    player.sendMessage("There are no pending applications at this time.");
+                    pendingApplications = null;
+                }
+                    
                 break;
                 
             default:
@@ -132,52 +155,51 @@ public class ApplicationListener implements Listener {
         player.sendMessage("Country: "    + application.getCountry());
         player.sendMessage("Album: "      + application.getAlbum());
         
-        player.sendMessage("Type \"accept,\", \"deny\", or \"cancel.\"");
+        player.sendMessage("Type \"accept\", \"deny\", or \"cancel.\"");
     }
     
     private boolean handleMessage(Player player, String message) {
         
         getLogger().info("0");
         
-        if(reviewingPlayer != null && reviewingPlayer.getUniqueId().equals(player.getUniqueId())) {
+        if(reviewingPlayers.containsKey(player)) {
             getLogger().info("1");
-            Application application = pendingApplications.get(reviewIndex++);
-            Player applicant = getServer().getPlayer(application.getUUID());
-            getLogger().info("2");
-            switch(message.toLowerCase()) {
-                case "accept":
-                    application.setState(Application.State.ACCEPTED);
-                    if(applicant != null && applicant.isOnline()) {
-                        applicant.sendMessage(MESSAGE_ACCEPTED);
-                    }
-                break;
-                    
-                case "deny":
-                    application.setState(Application.State.DENIED);
-                    if(applicant != null && applicant.isOnline()) {
-                        applicant.sendMessage(MESSAGE_DENIED);
-                    }
-                break;
-                    
-                case "skip": break;
-                    
-                case "cancel":
-                    reviewIndex = 0;
-                    pendingApplications = null;
-                    reviewingPlayer = null;
-                    return true;
-                    
-                default: return false;
+            UUID applicationUUID = reviewingPlayers.get(player);
+            if (pendingApplications.containsKey(applicationUUID)){
+            	Application application = pendingApplications.get(applicationUUID);
+                Player applicant = getServer().getPlayer(application.getUUID());
+                getLogger().info("2");
+                switch(message.toLowerCase()) {
+                    case "accept":
+                        application.setState(Application.State.ACCEPTED);
+                        if(applicant != null && applicant.isOnline()) {
+                            applicant.sendMessage(MESSAGE_ACCEPTED);
+                        }
+                    break;
+                        
+                    case "deny":
+                        application.setState(Application.State.DENIED);
+                        if(applicant != null && applicant.isOnline()) {
+                            applicant.sendMessage(MESSAGE_DENIED);
+                        }
+                    break;
+                        
+                    case "cancel":
+                        reviewingPlayers.remove(player);
+                        return true;
+                        
+                    default: return false;
+                }
+            } else {
+            	player.sendMessage("This application has been processed by another player.");
             }
             
-            if(reviewIndex >= pendingApplications.size()) {
+            
+            if(pendingApplications.size() == 0) {
                 player.sendMessage("That's all for now! Thank you.");
-                
-                reviewIndex = 0;
-                pendingApplications = null;
-                reviewingPlayer = null;
+                reviewingPlayers.remove(player);
             } else {
-                player.sendMessage((pendingApplications.size()-1-reviewIndex) + " applications remaining.");
+                player.sendMessage((pendingApplications.size()-1) + " applications remaining.");
             }
             
             return true;
@@ -190,13 +212,13 @@ public class ApplicationListener implements Listener {
                 switch(application.getState()) {
                     case STARTED:
                         player.sendMessage("Thank you for choosing Nashborough!");
-                        player.sendMessage("What country to do you live in?");
+                        player.sendMessage("Which country to do you live in?");
                         application.setState(Application.State.COUNTRY);
                         break;
                         
                     case COUNTRY:
                         application.setCountry(message);
-                        player.sendMessage("How old are you?");
+                        player.sendMessage("What is your age?");
                         application.setState(Application.State.AGE);
                         break;
                         
@@ -241,13 +263,11 @@ public class ApplicationListener implements Listener {
         return false;
     }
     
-    private List<Application> getPendingApplications() {
-        List<Application> pApplications = new ArrayList<>();
-        
-        int i = 0;
+    private HashMap<UUID, Application> getPendingApplications() {
+        HashMap<UUID, Application> pApplications = new HashMap<UUID, Application>();
         for(Application application : applications) {
             if(application.getState() == Application.State.PENDING) {
-                pApplications.add(application);
+                pApplications.put(application.getUUID(),application);
             }
         }
         
