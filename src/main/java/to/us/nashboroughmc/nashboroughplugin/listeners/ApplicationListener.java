@@ -35,13 +35,6 @@ import to.us.nashboroughmc.nashboroughplugin.models.Application;
  */
 public class ApplicationListener implements Listener {
     
-    /*private static final int UUID       = 0;
-    private static final int USERNAME   = 1;
-    private static final int COUNTRY    = 2;
-    private static final int AGE        = 3;
-    private static final int EXPERIENCE = 4;
-    private static final int ALBUM      = 5;*/
-    
     private static final String COMMAND_APPLY       = "apply";
     private static final String COMMAND_REVIEW_APPS = "reviewapps";
     
@@ -185,13 +178,16 @@ public class ApplicationListener implements Listener {
                         if(applicant != null && applicant.isOnline()) {
                             applicant.sendMessage(MESSAGE_ACCEPTED);
                         }
+                        pendingApplications.remove(applicationUUID);
                     break;
                         
                     case "deny":
+                    	//TODO: Ban the player with message
                         application.setState("denied");
                         if(applicant != null && applicant.isOnline()) {
                             applicant.sendMessage(MESSAGE_DENIED);
                         }
+                        pendingApplications.remove(applicationUUID);
                     break;
                         
                     case "cancel":
@@ -202,6 +198,8 @@ public class ApplicationListener implements Listener {
                 }
             } else {
             	player.sendMessage("This application has been processed by another player.");
+            	reviewingPlayers.remove(player);
+            	return true;
             }
             
             
@@ -335,48 +333,5 @@ public class ApplicationListener implements Listener {
 			applications.add(app);
 			
 		}
-     
-    	
-        /*BufferedReader reader = null;
-        
-        try {
-            File applicationsFile = new File("pending_applications.txt");
-            
-            if(!applicationsFile.exists()) {
-                applicationsFile.createNewFile();
-            }
-            
-            reader = new BufferedReader(new FileReader(applicationsFile));
-            
-            String line;
-            int lineIndex = 0, appIndex = 0;
-            while((line = reader.readLine()) != null) {
-                switch(lineIndex++) {
-                    case UUID:
-                        applications.add(new Application(Application.State.PENDING));
-                        applications.get(appIndex).setUUID(java.util.UUID.fromString(line));
-                        break;
-                        
-                    case USERNAME:   applications.get(appIndex).setUsername(line);   break;
-                    case COUNTRY:    applications.get(appIndex).setCountry(line);    break;
-                    case AGE:        applications.get(appIndex).setAge(line);        break;
-                    case EXPERIENCE: applications.get(appIndex).setExperience(line); break;
-                        
-                    case ALBUM:
-                        applications.get(appIndex++).setAlbum(line);
-                        lineIndex = 0;
-                        break;
-                }
-            }
-            
-        } catch(Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                reader.close();
-            } catch(Exception e) {
-                
-            }
-        }*/
     }
 }

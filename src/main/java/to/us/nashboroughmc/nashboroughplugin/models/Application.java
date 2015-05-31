@@ -5,7 +5,6 @@
  */
 package to.us.nashboroughmc.nashboroughplugin.models;
 
-import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -21,10 +20,6 @@ import org.json.simple.parser.ParseException;
  * @author Jacob
  */
 public class Application {
-    
-    public static enum State {
-        STARTED, PENDING, DENIED, ACCEPTED, COUNTRY, AGE, EXPERIENCE, ALBUM
-    }
     
     private String state;
     private UUID   uuid;
@@ -117,6 +112,7 @@ public class Application {
     	obj.put("age", getAge());
     	obj.put("experience", getExperience());
     	obj.put("album", getAlbum());
+    	obj.put("state",getState());
     	jsonObject.put(getUUID().toString(),obj);
     	FileWriter file;
 		try {
@@ -128,33 +124,4 @@ public class Application {
 			e1.printStackTrace();
 		}
     }
-        /*BufferedWriter writer = null;
-        
-        
-        try {
-            File applicationsFile = new File("pending_applications.txt");
-            
-            writer = new BufferedWriter(new FileWriter(applicationsFile, true));
-            
-            writeLine(writer, uuid.toString());
-            writeLine(writer, username);
-            writeLine(writer, country);
-            writeLine(writer, age);
-            writeLine(writer, experience);
-            writeLine(writer, album);
-            
-        } catch(Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                writer.close();
-            } catch(Exception e) {
-            }
-        }
-    }
-    
-    private void writeLine(BufferedWriter writer, String text) throws IOException {
-        writer.write(text);
-        writer.newLine();
-    }*/
 }
