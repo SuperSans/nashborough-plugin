@@ -5,6 +5,9 @@
  */
 package to.us.nashboroughmc.nashboroughplugin.listeners;
 
+import static org.bukkit.Bukkit.getLogger;
+import static org.bukkit.Bukkit.getServer;
+
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -27,6 +30,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import to.us.nashboroughmc.nashboroughplugin.Utils;
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
 
 /**
@@ -68,8 +72,8 @@ public class ApplicationListener implements Listener {
         
         if(player.isOp()) {
             if(applications.size() > 0) {
-                player.sendMessage("Applications awaiting review: " + applications.size());
-                player.sendMessage("Use \"/reviewapps\" to review them");
+                Utils.send_message(player, "Applications awaiting review: " + applications.size());
+                Utils.send_message(player, "Use \"/reviewapps\" to review them");
             }
         }
     }
@@ -89,10 +93,9 @@ public class ApplicationListener implements Listener {
             
                 if(application != null) {
                     switch(application.getState()) {
-                        
-                        case "pending":  player.sendMessage(MESSAGE_PENDING);  break;
-                        case "accepted": player.sendMessage(MESSAGE_ACCEPTED); break;
-                        case "denied":   player.sendMessage(MESSAGE_DENIED);   break;
+                        case "pending":  Utils.send_message(player, MESSAGE_PENDING);  break;
+                        case "accepted": Utils.send_message(player, MESSAGE_ACCEPTED); break;
+                        case "denied":   Utils.send_message(player, MESSAGE_DENIED);   break;
                         default: handleMessage(player, null); break;
                     }
 
@@ -110,12 +113,13 @@ public class ApplicationListener implements Listener {
             		reviewers.add(reviewer); //TODO: Add if statement to check if they're already reviewing
             	}
                 if(reviewers.size() == 1) {
-                	player.sendMessage(reviewers.get(0).getDisplayName() + " is also reviewing applications at the moment.");
-                	player.sendMessage(" ");
+
+                	Utils.send_message(player, reviewers.get(0).getDisplayName() + " is also reviewing applications at the moment.");
+                	Utils.send_message(player, " ");
                 }
                 else if (reviewers.size() == 2){
-                	player.sendMessage(reviewers.get(0).getDisplayName() + " and " + reviewers.get(1).getDisplayName() + " are also reviewing applications at the moment.");
-                	player.sendMessage(" ");
+                	Utils.send_message(player, reviewers.get(0).getDisplayName() + " and " + reviewers.get(1).getDisplayName() + " are also reviewing applications at the moment.");
+                	Utils.send_message(player, " ");
                 }
                 else if (reviewers.size() > 2){
                 	String message = "";
@@ -123,8 +127,9 @@ public class ApplicationListener implements Listener {
                 		message += reviewers.get(i).getDisplayName() + ", ";
                 	}
                 	message += "and " + reviewers.get(reviewers.size()-1).getDisplayName() + " are also reviewing applications at the moment.";
-                	player.sendMessage(message);
-                	player.sendMessage(" ");
+
+                	Utils.send_message(player, message);
+                	Utils.send_message(player, " ");
                 }
                 
                 pendingApplications = getPendingApplications();
@@ -137,7 +142,7 @@ public class ApplicationListener implements Listener {
                     displayApplication(player, app);
                     
                 } else {
-                    player.sendMessage("There are no pending applications at this time.");
+                    Utils.send_message(player, "There are no pending applications at this time.");
                     pendingApplications = null;
                 }
                     
@@ -152,13 +157,13 @@ public class ApplicationListener implements Listener {
     
     private void displayApplication(Player player, Application application) {
         
-        player.sendMessage("Name: "       + application.getUsername());
-        player.sendMessage("Age: "        + application.getAge());
-        player.sendMessage("Experience: " + application.getExperience());
-        player.sendMessage("Country: "    + application.getCountry());
-        player.sendMessage("Album: "      + application.getAlbum());
+        Utils.send_message(player, "Name: "       + application.getUsername());
+        Utils.send_message(player, "Age: "        + application.getAge());
+        Utils.send_message(player, "Experience: " + application.getExperience());
+        Utils.send_message(player, "Country: "    + application.getCountry());
+        Utils.send_message(player, "Album: "      + application.getAlbum());
         
-        player.sendMessage("Type \"accept\", \"deny\", or \"cancel.\"");
+        Utils.send_message(player, "Type \"accept\", \"deny\", or \"cancel.\"");
     }
     
     private boolean handleMessage(Player player, String message) {
@@ -177,8 +182,9 @@ public class ApplicationListener implements Listener {
                     case "accept":
                         application.setState("accepted");
                         if(applicant != null && applicant.isOnline()) {
-                            applicant.sendMessage(MESSAGE_ACCEPTED);
+                            Utils.send_message(applicant, MESSAGE_ACCEPTED);
                         }
+<<<<<<< HEAD
                         
                         new Thread(new Runnable(){
 
@@ -209,13 +215,14 @@ public class ApplicationListener implements Listener {
                         	
                         });
                         pendingApplications.remove(applicationUUID);
+=======
+>>>>>>> f1b6ccbe09b0a56d9003ba832e644b035257c88f
                     break;
                         
                     case "deny":
-                    	//TODO: Ban the player with message
                         application.setState("denied");
                         if(applicant != null && applicant.isOnline()) {
-                            applicant.sendMessage(MESSAGE_DENIED);
+                            Utils.send_message(applicant, MESSAGE_DENIED);
                         }
                         new Thread(new Runnable(){
 
@@ -255,17 +262,18 @@ public class ApplicationListener implements Listener {
                     default: return false;
                 }
             } else {
-            	player.sendMessage("This application has been processed by another player.");
+            	Utils.send_message(player, "This application has been processed by another player.");
             	reviewingPlayers.remove(player);
             	return true;
             }
             
             
             if(pendingApplications.size() == 0) {
-                player.sendMessage("That's all for now! Thank you.");
+                Utils.send_message(player, "That's all for now! Thank you.");
                 reviewingPlayers.remove(player);
             } else {
-                player.sendMessage((pendingApplications.size()-1) + " applications remaining.");
+                Utils.send_message(player, (pendingApplications.size()-1) + " applications remaining.");
+                reviewingPlayers.remove(player);
             }
             
             return true;
@@ -277,25 +285,26 @@ public class ApplicationListener implements Listener {
             if(application.getUsername().equals(player.getDisplayName())) {
                 switch(application.getState()) {
                     case "started":
-                        player.sendMessage("Thank you for choosing Nashborough!");
-                        player.sendMessage("Which country to do you live in?");
+                        Utils.send_message(player, "Thank you for choosing Nashborough!");
+                        Utils.send_message(player, "Which country to do you live in?");
                         application.setState("country");
                         break;
                         
                     case "country":
                         application.setCountry(message);
-                        player.sendMessage("What is your age?");
+                        Utils.send_message(player, "What is your age?");
                         application.setState("age");
                         break;
                         
                     case "age":
                         application.setAge(message);
-                        player.sendMessage("How long have you been playing Minecraft for?");
+                        Utils.send_message(player, "How long have you been playing Minecraft for?");
                         application.setState("experience");
                         break;
                         
                     case "experience":
                         application.setExperience(message);
+                        Utils.send_message(player, "If you would like, provide us with a link to an album of your previous builds.");
                         player.sendMessage("If you would like, provide us with a link to an album of your previous builds.");
                         application.setState("album");
                         break;
@@ -304,12 +313,17 @@ public class ApplicationListener implements Listener {
                         application.setAlbum(message);
                         application.setState("pending");
                         application.submit();
+<<<<<<< HEAD
                         player.sendMessage("That's all! We'll get to your application as soon as possible.");
+=======
+                        Utils.send_message(player, "That's all! We'll get to your application as soon as possible.");
+                        application.setState("pending");
+>>>>>>> f1b6ccbe09b0a56d9003ba832e644b035257c88f
                         
                         for(Player p : getServer().getOnlinePlayers()) {
                             if(p.isOp()) {
-                                p.sendMessage("A new application was submitted!");
-                                p.sendMessage("Applications awaiting review: " + getPendingApplications().size());
+                                Utils.send_message(p, "A new application was submitted!");
+                                Utils.send_message(p, "Applications awaiting review: " + getPendingApplications().size());
                             }
                         }
                         
@@ -389,7 +403,6 @@ public class ApplicationListener implements Listener {
 			UUID uuid = java.util.UUID.fromString(string);
 			app.setUUID(uuid);
 			applications.add(app);
-			
 		}
     }
 }
