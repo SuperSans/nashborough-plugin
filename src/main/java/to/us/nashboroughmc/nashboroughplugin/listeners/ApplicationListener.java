@@ -184,8 +184,7 @@ public class ApplicationListener implements Listener {
                         if(applicant != null && applicant.isOnline()) {
                             Utils.send_message(applicant, MESSAGE_ACCEPTED);
                         }
-<<<<<<< HEAD
-                        
+						
                         new Thread(new Runnable(){
 
 							@SuppressWarnings("unchecked")
@@ -215,8 +214,6 @@ public class ApplicationListener implements Listener {
                         	
                         });
                         pendingApplications.remove(applicationUUID);
-=======
->>>>>>> f1b6ccbe09b0a56d9003ba832e644b035257c88f
                     break;
                         
                     case "deny":
@@ -313,12 +310,7 @@ public class ApplicationListener implements Listener {
                         application.setAlbum(message);
                         application.setState("pending");
                         application.submit();
-<<<<<<< HEAD
-                        player.sendMessage("That's all! We'll get to your application as soon as possible.");
-=======
                         Utils.send_message(player, "That's all! We'll get to your application as soon as possible.");
-                        application.setState("pending");
->>>>>>> f1b6ccbe09b0a56d9003ba832e644b035257c88f
                         
                         for(Player p : getServer().getOnlinePlayers()) {
                             if(p.isOp()) {
