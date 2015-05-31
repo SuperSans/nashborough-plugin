@@ -17,7 +17,7 @@ import org.json.simple.parser.ParseException;
 
 /**
  *
- * @author Jacob
+ * @author Jacob and Greg
  */
 public class Application {
     

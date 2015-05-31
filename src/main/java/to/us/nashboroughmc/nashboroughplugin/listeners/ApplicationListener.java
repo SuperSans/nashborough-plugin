@@ -168,6 +168,7 @@ public class ApplicationListener implements Listener {
         if(reviewingPlayers.containsKey(player)) {
             getLogger().info("1");
             UUID applicationUUID = reviewingPlayers.get(player);
+            final UUID StateUUID = applicationUUID;
             if (pendingApplications.containsKey(applicationUUID)){
             	Application application = pendingApplications.get(applicationUUID);
                 Player applicant = getServer().getPlayer(application.getUUID());
@@ -178,6 +179,35 @@ public class ApplicationListener implements Listener {
                         if(applicant != null && applicant.isOnline()) {
                             applicant.sendMessage(MESSAGE_ACCEPTED);
                         }
+                        
+                        new Thread(new Runnable(){
+
+							@SuppressWarnings("unchecked")
+							@Override
+							public void run() {
+								JSONParser parser = new JSONParser();
+						    	JSONObject jsonObject = null;
+						    	try {
+									jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
+								} catch (IOException | ParseException e) {
+									e.printStackTrace();
+								};
+								JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
+								playerobj.put("state", "accepted");
+								jsonObject.put(StateUUID, playerobj);
+								FileWriter file;
+								try {
+									file = new FileWriter("applications.json");
+									file.write(jsonObject.toJSONString());
+						    		file.flush();
+						    		file.close();
+								} catch (IOException e1) {
+									e1.printStackTrace();
+								}
+								
+							}
+                        	
+                        });
                         pendingApplications.remove(applicationUUID);
                     break;
                         
@@ -187,6 +217,34 @@ public class ApplicationListener implements Listener {
                         if(applicant != null && applicant.isOnline()) {
                             applicant.sendMessage(MESSAGE_DENIED);
                         }
+                        new Thread(new Runnable(){
+
+							@SuppressWarnings("unchecked")
+							@Override
+							public void run() {
+								JSONParser parser = new JSONParser();
+						    	JSONObject jsonObject = null;
+						    	try {
+									jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
+								} catch (IOException | ParseException e) {
+									e.printStackTrace();
+								};
+								JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
+								playerobj.put("state", "denied");
+								jsonObject.put(StateUUID, playerobj);
+								FileWriter file;
+								try {
+									file = new FileWriter("applications.json");
+									file.write(jsonObject.toJSONString());
+						    		file.flush();
+						    		file.close();
+								} catch (IOException e1) {
+									e1.printStackTrace();
+								}
+								
+							}
+                        	
+                        });
                         pendingApplications.remove(applicationUUID);
                     break;
                         
@@ -244,9 +302,9 @@ public class ApplicationListener implements Listener {
                         
                     case "album":
                         application.setAlbum(message);
+                        application.setState("pending");
                         application.submit();
                         player.sendMessage("That's all! We'll get to your application as soon as possible.");
-                        application.setState("pending");
                         
                         for(Player p : getServer().getOnlinePlayers()) {
                             if(p.isOp()) {
