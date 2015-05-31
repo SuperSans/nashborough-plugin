@@ -11,7 +11,6 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.bukkit.Bukkit.getLogger;
@@ -22,6 +21,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
 
@@ -51,7 +51,6 @@ public class ApplicationListener implements Listener {
     
     public ApplicationListener() {
         applications = new ArrayList<>();
-        
         loadSavedApplications();
     }
     
@@ -75,6 +74,13 @@ public class ApplicationListener implements Listener {
                 player.sendMessage("Applications awaiting review: " + applications.size());
                 player.sendMessage("Use \"/reviewapps\" to review them");
             }
+        }
+    }
+    @EventHandler
+    public void onQuitEvent(PlayerQuitEvent ev) {
+        Player player = ev.getPlayer();
+        if(player.isOp() && reviewingPlayers.containsKey(player)) {
+            reviewingPlayers.remove(player);
         }
     }
     
@@ -104,22 +110,22 @@ public class ApplicationListener implements Listener {
             case COMMAND_REVIEW_APPS:
             	ArrayList<Player> reviewers = new ArrayList<Player>();
             	for (Player reviewer : reviewingPlayers.keySet()){
-            		reviewers.add(reviewer);
+            		reviewers.add(reviewer); //Add if statement to check if they're already reviewing
             	}
                 if(reviewers.size() == 1) {
-                	player.sendMessage(reviewers.get(0) + " is also reviewing applications at the moment.");
+                	player.sendMessage(reviewers.get(0).getDisplayName() + " is also reviewing applications at the moment.");
                 	player.sendMessage(" ");
                 }
                 else if (reviewers.size() == 2){
-                	player.sendMessage(reviewers.get(0) + " and " + reviewers.get(1) + " are also reviewing applications at the moment.");
+                	player.sendMessage(reviewers.get(0).getDisplayName() + " and " + reviewers.get(1).getDisplayName() + " are also reviewing applications at the moment.");
                 	player.sendMessage(" ");
                 }
                 else if (reviewers.size() > 2){
                 	String message = "";
                 	for (int i = 0; i < reviewers.size() - 2; i++){
-                		message += reviewers.get(i) + ", ";
+                		message += reviewers.get(i).getDisplayName() + ", ";
                 	}
-                	message += "and " + reviewers.get(reviewers.size()-1) + " are also reviewing applications at the moment.";
+                	message += "and " + reviewers.get(reviewers.size()-1).getDisplayName() + " are also reviewing applications at the moment.";
                 	player.sendMessage(message);
                 	player.sendMessage(" ");
                 }
@@ -129,7 +135,7 @@ public class ApplicationListener implements Listener {
                 
                 if(pendingApplications.size() > 0) {
                 	Object[] entries = pendingApplications.keySet().toArray();
-                	Application app = (Application) entries[0];
+                	Application app = (Application) pendingApplications.get(entries[0]);
                     reviewingPlayers.put(player, app.getUUID());
                     displayApplication(player, app);
                     
