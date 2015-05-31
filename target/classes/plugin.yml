@@ -1,0 +1,13 @@
+name: NashboroughPlugin
+main: to.us.nashboroughmc.nashboroughplugin.NashboroughPlugin
+version: SNAPSHOT-01
+
+commands:
+  apply:
+    description: sends in an application to become an official Nashbro
+    usage: /apply
+  
+  reviewapps:
+    description: review pending applications and approve or deny them
+    usage: /reviewapps
+    permission: op
