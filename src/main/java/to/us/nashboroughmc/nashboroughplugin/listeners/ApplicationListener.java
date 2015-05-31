@@ -5,9 +5,10 @@
  */
 package to.us.nashboroughmc.nashboroughplugin.listeners;
 
-import java.io.BufferedReader;
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +23,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
 
@@ -31,12 +35,12 @@ import to.us.nashboroughmc.nashboroughplugin.models.Application;
  */
 public class ApplicationListener implements Listener {
     
-    private static final int UUID       = 0;
+    /*private static final int UUID       = 0;
     private static final int USERNAME   = 1;
     private static final int COUNTRY    = 2;
     private static final int AGE        = 3;
     private static final int EXPERIENCE = 4;
-    private static final int ALBUM      = 5;
+    private static final int ALBUM      = 5;*/
     
     private static final String COMMAND_APPLY       = "apply";
     private static final String COMMAND_REVIEW_APPS = "reviewapps";
@@ -93,9 +97,9 @@ public class ApplicationListener implements Listener {
                 if(application != null) {
                     switch(application.getState()) {
                         
-                        case PENDING:  player.sendMessage(MESSAGE_PENDING);  break;
-                        case ACCEPTED: player.sendMessage(MESSAGE_ACCEPTED); break;
-                        case DENIED:   player.sendMessage(MESSAGE_DENIED);   break;
+                        case "pending":  player.sendMessage(MESSAGE_PENDING);  break;
+                        case "accepted": player.sendMessage(MESSAGE_ACCEPTED); break;
+                        case "denied":   player.sendMessage(MESSAGE_DENIED);   break;
                         default: handleMessage(player, null); break;
                     }
 
@@ -110,7 +114,7 @@ public class ApplicationListener implements Listener {
             case COMMAND_REVIEW_APPS:
             	ArrayList<Player> reviewers = new ArrayList<Player>();
             	for (Player reviewer : reviewingPlayers.keySet()){
-            		reviewers.add(reviewer); //Add if statement to check if they're already reviewing
+            		reviewers.add(reviewer); //TODO: Add if statement to check if they're already reviewing
             	}
                 if(reviewers.size() == 1) {
                 	player.sendMessage(reviewers.get(0).getDisplayName() + " is also reviewing applications at the moment.");
@@ -177,14 +181,14 @@ public class ApplicationListener implements Listener {
                 getLogger().info("2");
                 switch(message.toLowerCase()) {
                     case "accept":
-                        application.setState(Application.State.ACCEPTED);
+                        application.setState("accepted");
                         if(applicant != null && applicant.isOnline()) {
                             applicant.sendMessage(MESSAGE_ACCEPTED);
                         }
                     break;
                         
                     case "deny":
-                        application.setState(Application.State.DENIED);
+                        application.setState("denied");
                         if(applicant != null && applicant.isOnline()) {
                             applicant.sendMessage(MESSAGE_DENIED);
                         }
@@ -212,39 +216,39 @@ public class ApplicationListener implements Listener {
         }
         
         //Else, look for this players application
-        for(Application application : applications) {
+        for(Application application : applications) {  //TODO: This is iterated through EVERY TIME SOMEONE CHATS
             
             if(application.getUsername().equals(player.getDisplayName())) {
                 switch(application.getState()) {
-                    case STARTED:
+                    case "started":
                         player.sendMessage("Thank you for choosing Nashborough!");
                         player.sendMessage("Which country to do you live in?");
-                        application.setState(Application.State.COUNTRY);
+                        application.setState("country");
                         break;
                         
-                    case COUNTRY:
+                    case "country":
                         application.setCountry(message);
                         player.sendMessage("What is your age?");
-                        application.setState(Application.State.AGE);
+                        application.setState("age");
                         break;
                         
-                    case AGE:
+                    case "age":
                         application.setAge(message);
                         player.sendMessage("How long have you been playing Minecraft for?");
-                        application.setState(Application.State.EXPERIENCE);
+                        application.setState("experience");
                         break;
                         
-                    case EXPERIENCE:
+                    case "experience":
                         application.setExperience(message);
                         player.sendMessage("If you would like, provide us with a link to an album of your previous builds.");
-                        application.setState(Application.State.ALBUM);
+                        application.setState("album");
                         break;
                         
-                    case ALBUM:
+                    case "album":
                         application.setAlbum(message);
                         application.submit();
                         player.sendMessage("That's all! We'll get to your application as soon as possible.");
-                        application.setState(Application.State.PENDING);
+                        application.setState("pending");
                         
                         for(Player p : getServer().getOnlinePlayers()) {
                             if(p.isOp()) {
@@ -272,7 +276,7 @@ public class ApplicationListener implements Listener {
     private HashMap<UUID, Application> getPendingApplications() {
         HashMap<UUID, Application> pApplications = new HashMap<UUID, Application>();
         for(Application application : applications) {
-            if(application.getState() == Application.State.PENDING) {
+            if(application.getState() == "pending") {
                 pApplications.put(application.getUUID(),application);
             }
         }
@@ -291,7 +295,49 @@ public class ApplicationListener implements Listener {
     }
     
     private void loadSavedApplications() {
-        BufferedReader reader = null;
+    	JSONParser parser = new JSONParser();
+    	JSONObject jsonObject = null;
+    	 
+    	try {
+    		Object obj = parser.parse(new FileReader("applications.json"));
+    		jsonObject = (JSONObject) obj;
+    	} catch (FileNotFoundException e) {
+    		jsonObject = new JSONObject();
+    		FileWriter file;
+			try {
+				file = new FileWriter("applications.json");
+				file.write(jsonObject.toJSONString());
+	    		file.flush();
+	    		file.close();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+    		
+     
+    	} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+    	Object[] keys = jsonObject.keySet().toArray();
+
+		for (Object UUID : keys){
+			JSONObject player = (JSONObject) jsonObject.get(UUID);
+			Application app = new Application((String)player.get("state"));
+			app.setAge((String) player.get("age"));
+			app.setAlbum((String)player.get("album"));
+			app.setCountry((String)player.get("country"));
+			app.setExperience((String)player.get("experience"));
+			app.setUsername((String)player.get("username"));
+			String string = (String) player.get("UUID");
+			UUID uuid = java.util.UUID.fromString(string);
+			app.setUUID(uuid);
+			applications.add(app);
+			
+		}
+     
+    	
+        /*BufferedReader reader = null;
         
         try {
             File applicationsFile = new File("pending_applications.txt");
@@ -331,6 +377,6 @@ public class ApplicationListener implements Listener {
             } catch(Exception e) {
                 
             }
-        }
+        }*/
     }
 }

@@ -6,11 +6,15 @@
 package to.us.nashboroughmc.nashboroughplugin.models;
 
 import java.io.BufferedWriter;
-import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.UUID;
+
 import org.bukkit.entity.Player;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 /**
  *
@@ -22,7 +26,7 @@ public class Application {
         STARTED, PENDING, DENIED, ACCEPTED, COUNTRY, AGE, EXPERIENCE, ALBUM
     }
     
-    private State  state;
+    private String state;
     private UUID   uuid;
     private String username;
     private String age;
@@ -30,23 +34,23 @@ public class Application {
     private String experience;
     private String album;
     
-    public Application(State state) {
-        this.state = state;
+    public Application(String string) {
+        this.state = string;
     }
     
     public Application(Player player) {
         this.uuid     = player.getUniqueId();
         this.username = player.getDisplayName();
         
-        this.state = State.STARTED;
+        this.state = "started";
     }
 
-    public State getState() {
+    public String getState() {
         return state;
     }
 
-    public void setState(State state) {
-        this.state = state;
+    public void setState(String string) {
+        this.state = string;
     }
     
     public UUID getUUID() {
@@ -97,8 +101,35 @@ public class Application {
         this.album = album;
     }
     
-    public void submit() {
-        BufferedWriter writer = null;
+    @SuppressWarnings("unchecked")
+	public void submit() {
+    	JSONParser parser = new JSONParser();
+    	JSONObject jsonObject = null;
+    	try {
+			jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
+		} catch (IOException | ParseException e) {
+			e.printStackTrace();
+		};
+    	JSONObject obj = new JSONObject();
+    	obj.put("UUID", getUUID().toString());
+    	obj.put("username", getUsername());
+    	obj.put("country", getCountry());
+    	obj.put("age", getAge());
+    	obj.put("experience", getExperience());
+    	obj.put("album", getAlbum());
+    	jsonObject.put(getUUID().toString(),obj);
+    	FileWriter file;
+		try {
+			file = new FileWriter("applications.json");
+			file.write(jsonObject.toJSONString());
+    		file.flush();
+    		file.close();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+    }
+        /*BufferedWriter writer = null;
+        
         
         try {
             File applicationsFile = new File("pending_applications.txt");
@@ -125,5 +156,5 @@ public class Application {
     private void writeLine(BufferedWriter writer, String text) throws IOException {
         writer.write(text);
         writer.newLine();
-    }
+    }*/
 }
