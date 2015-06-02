@@ -109,8 +109,11 @@ public class ApplicationListener implements Listener {
                 
             case COMMAND_REVIEW_APPS:
             	ArrayList<Player> reviewers = new ArrayList<Player>();
+            	if (reviewingPlayers.keySet().contains(player)){
+            		reviewingPlayers.remove(player);
+            	}
             	for (Player reviewer : reviewingPlayers.keySet()){
-            		reviewers.add(reviewer); //TODO: Add if statement to check if they're already reviewing
+            		reviewers.add(reviewer);
             	}
                 if(reviewers.size() == 1) {
 
@@ -277,7 +280,7 @@ public class ApplicationListener implements Listener {
         }
         
         //Else, look for this players application
-        for(Application application : applications) {  //TODO: This is iterated through EVERY TIME SOMEONE CHATS
+        for(Application application : applications) {  //TODO: This is iterated through EVERY TIME SOMEONE CHATS. Should this be fixed?
             
             if(application.getUsername().equals(player.getDisplayName())) {
                 switch(application.getState()) {
