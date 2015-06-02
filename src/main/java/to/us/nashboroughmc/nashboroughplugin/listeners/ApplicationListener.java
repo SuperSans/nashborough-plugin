@@ -49,7 +49,7 @@ public class ApplicationListener implements Listener {
     private final List<Application> applications;
     private HashMap<UUID, Application> pendingApplications;
     private HashMap<Player, UUID> reviewingPlayers = new HashMap<Player, UUID>();
-    
+    //DANK MAYMAYS
     public ApplicationListener() {
         applications = new ArrayList<>();
         loadSavedApplications();
