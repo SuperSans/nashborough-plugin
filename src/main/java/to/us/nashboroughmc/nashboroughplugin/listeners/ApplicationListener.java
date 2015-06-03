@@ -20,6 +20,8 @@ import java.util.UUID;
 import static org.bukkit.Bukkit.getLogger;
 import static org.bukkit.Bukkit.getServer;
 
+import org.bukkit.BanList;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -52,6 +54,7 @@ public class ApplicationListener implements Listener {
     public ApplicationListener() {
         applications = new ArrayList<>();
         loadSavedApplications();
+        pendingApplications = getPendingApplications();
     }
     
     @EventHandler
@@ -67,10 +70,11 @@ public class ApplicationListener implements Listener {
     
     @EventHandler
     public void onJoinEvent(PlayerJoinEvent ev) {
-        Player player = ev.getPlayer();
+        Player player = ev.getPlayer(); //TODO: Handle whether or not a player has applied. Should we make 2 separate JSONs for denied and accepted applications as well?
+        
         
         if(player.isOp()) {
-            if(applications.size() > 0) {
+            if(pendingApplications.size() > 0) {
                 Utils.send_message(player, "Applications awaiting review: " + applications.size());
                 Utils.send_message(player, "Use \"/reviewapps\" to review them");
             }
@@ -159,6 +163,7 @@ public class ApplicationListener implements Listener {
     
     private void displayApplication(Player player, Application application) {
         
+    	Utils.send_message(player, " ");
         Utils.send_message(player, "Name: "       + application.getUsername());
         Utils.send_message(player, "Age: "        + application.getAge());
         Utils.send_message(player, "Experience: " + application.getExperience());
@@ -175,7 +180,7 @@ public class ApplicationListener implements Listener {
         if(reviewingPlayers.containsKey(player)) {
             getLogger().info("1");
             UUID applicationUUID = reviewingPlayers.get(player);
-            final UUID StateUUID = applicationUUID;
+            final String StateUUID = applicationUUID.toString();
             if (pendingApplications.containsKey(applicationUUID)){
             	Application application = pendingApplications.get(applicationUUID);
                 Player applicant = getServer().getPlayer(application.getUUID());
@@ -214,7 +219,7 @@ public class ApplicationListener implements Listener {
 								
 							}
                         	
-                        });
+                        }).start();
                         pendingApplications.remove(applicationUUID);
                     break;
                         
@@ -223,6 +228,15 @@ public class ApplicationListener implements Listener {
                         if(applicant != null && applicant.isOnline()) {
                             Utils.send_message(applicant, MESSAGE_DENIED);
                         }
+                        BanList banlist = Bukkit.getBanList(BanList.Type.NAME);
+                        banlist.addBan(applicant.getDisplayName(), "Your application has been rejected. We wish you luck in your server search!", null, "Application Plugin");
+                        final Player p = applicant;
+                        Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() { //TODO: Test to see what errors are thrown when player is not online
+                        	  public void run() {
+                        		  p.kickPlayer("Your application has been rejected. We wish you luck in your server search!");
+                        	  }
+                        	});
+                        
                         new Thread(new Runnable(){
 
 							@SuppressWarnings("unchecked")
@@ -250,7 +264,7 @@ public class ApplicationListener implements Listener {
 								
 							}
                         	
-                        });
+                        }).start();
                         pendingApplications.remove(applicationUUID);
                     break;
                         
@@ -271,7 +285,7 @@ public class ApplicationListener implements Listener {
                 Utils.send_message(player, "That's all for now! Thank you.");
                 reviewingPlayers.remove(player);
             } else {
-                Utils.send_message(player, (pendingApplications.size()-1) + " applications remaining.");
+                Utils.send_message(player, (pendingApplications.size()) + " application(s) remaining.");
                 reviewingPlayers.remove(player);
             }
             
@@ -304,7 +318,6 @@ public class ApplicationListener implements Listener {
                     case "experience":
                         application.setExperience(message);
                         Utils.send_message(player, "If you would like, provide us with a link to an album of your previous builds.");
-                        player.sendMessage("If you would like, provide us with a link to an album of your previous builds.");
                         application.setState("album");
                         break;
                         

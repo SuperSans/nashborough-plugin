@@ -1,0 +1,5 @@
+TODO:
++Make new JSONs for accepted and denied players
++Change gamemode when accepted
++Give choice of where to build
+	+When teleported, give kit
