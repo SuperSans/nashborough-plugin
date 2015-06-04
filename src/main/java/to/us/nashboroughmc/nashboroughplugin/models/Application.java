@@ -123,4 +123,36 @@ public class Application {
 			e1.printStackTrace();
 		}
     }
+    
+    public void changeFileState(String state){
+    	final String StateUUID = getUUID().toString();
+    	new Thread(new Runnable(){
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public void run() {
+				JSONParser parser = new JSONParser();
+		    	JSONObject jsonObject = null;
+		    	try {
+					jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
+				} catch (IOException | ParseException e) {
+					e.printStackTrace();
+				};
+				JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
+				playerobj.put("state", state);
+				jsonObject.put(StateUUID, playerobj);
+				FileWriter file;
+				try {
+					file = new FileWriter("applications.json");
+					file.write(jsonObject.toJSONString());
+		    		file.flush();
+		    		file.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				
+			}
+        	
+        }).start();
+    }
 }

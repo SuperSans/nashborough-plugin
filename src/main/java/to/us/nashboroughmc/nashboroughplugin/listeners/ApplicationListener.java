@@ -8,20 +8,17 @@ package to.us.nashboroughmc.nashboroughplugin.listeners;
 import static org.bukkit.Bukkit.getLogger;
 import static org.bukkit.Bukkit.getServer;
 
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-
-import static org.bukkit.Bukkit.getLogger;
-import static org.bukkit.Bukkit.getServer;
 
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -44,15 +41,33 @@ public class ApplicationListener implements Listener {
     private static final String COMMAND_APPLY       = "apply";
     private static final String COMMAND_REVIEW_APPS = "reviewapps";
     
-    private static final String MESSAGE_PENDING  = "Looks like you have an application pending. We will get to it as soon as possible.";
-    private static final String MESSAGE_ACCEPTED = "Congratulations! Your application accepted.";
-    private static final String MESSAGE_DENIED   = "Sorry, your application was denied.";
+    private static final String MESSAGE_PENDING   = "Looks like you have an application pending. We will get to it as soon as possible.";
+    private static final String MESSAGE_ACCEPTED  = "Congratulations! Your application accepted.";
+    private static final String MESSAGE_DENIED    = "Sorry, your application was denied.";
+    private static final String MESSAGE_SELECTING = "Now that your preliminary application has been accepted, you must choose where to build your home.";
+    private static final String MESSAGE_BUILDING  = "You're in the building stage of your membership. When your survival build is completed, use the /submitbuild command and a moderator will review your build.";
     
-    private final List<Application> applications;
+    private static final String WEST_AUTUMNPORT_INFO   = "Autumnport: West of the coastal town, Autumnport. Style: Wooden, Stone";
+    private static final int[]  WEST_AUTUMNPORT_COORDS = {106, 69, -498};
+    
+    private static final String FELLFRIN_INFO   = "Fellfrin: A survival-styled village featuring cabins and cottages. Style: Wooden";
+    private static final int[]  FELLFRIN_COORDS = {-224, 71, -311};
+    
+    private static final String SORRENTO_INFO   = "Sorrento: A suburn connecting Autumnport and Nashborough. Style: Wooden, Stone";
+    private static final int[]  SORRENTO_COORDS = {525, 70, -321};
+    
+    private static final String WEST_NASH_INFO   = "West Nashborough: An underdeveloped suburb in need of a community. Style: Wooden, Brick, Stone";
+    private static final int[]  WEST_NASH_COORDS = {-245, 64, 145};
+    
+    private static final String SOUTH_NASH_INFO   = "South Nashborough: An underdeveloped suburb with a farming community a few hundred meters south of it. Style: Wooden, Brick, Stone";
+    private static final int[]  SOUTH_NASH_COORDS = {-65, 67, 429};
+    
+    private final HashMap<UUID, Application> applications;
     private HashMap<UUID, Application> pendingApplications;
     private HashMap<Player, UUID> reviewingPlayers = new HashMap<Player, UUID>();
+    private HashMap<Player, UUID> selectingPlayers = new HashMap<Player, UUID>();
     public ApplicationListener() {
-        applications = new ArrayList<>();
+        applications = new HashMap<UUID, Application>();
         loadSavedApplications();
         pendingApplications = getPendingApplications();
     }
@@ -71,7 +86,15 @@ public class ApplicationListener implements Listener {
     @EventHandler
     public void onJoinEvent(PlayerJoinEvent ev) {
         Player player = ev.getPlayer(); //TODO: Handle whether or not a player has applied. Should we make 2 separate JSONs for denied and accepted applications as well?
-        
+        if (applications.containsKey(player.getUniqueId())){
+        	Application application = applications.get(player.getUniqueId());
+        	switch(application.getState()){
+        	case "pending"	:  	Utils.send_message(player, MESSAGE_PENDING);  break;
+        	case "accepted"	:	alertAcceptance(player);  break;
+        	case "selecting": 	messageLocationOptions(player); break;
+        	case "building"	: 	Utils.send_message(player, MESSAGE_BUILDING);  break;
+        	}
+        }
         
         if(player.isOp()) {
             if(pendingApplications.size() > 0) {
@@ -104,7 +127,7 @@ public class ApplicationListener implements Listener {
 
                 //Create a new application
                 } else {
-                    applications.add(new Application(player));
+                    applications.put(player.getUniqueId(),new Application(player));
                     handleMessage(player, null);
                 }
                 
@@ -180,7 +203,6 @@ public class ApplicationListener implements Listener {
         if(reviewingPlayers.containsKey(player)) {
             getLogger().info("1");
             UUID applicationUUID = reviewingPlayers.get(player);
-            final String StateUUID = applicationUUID.toString();
             if (pendingApplications.containsKey(applicationUUID)){
             	Application application = pendingApplications.get(applicationUUID);
                 Player applicant = getServer().getPlayer(application.getUUID());
@@ -188,40 +210,12 @@ public class ApplicationListener implements Listener {
                 switch(message.toLowerCase()) {
                     case "accept":
                         application.setState("accepted");
+                        application.changeFileState("accepted");
                         if(applicant != null && applicant.isOnline()) {
-                            Utils.send_message(applicant, MESSAGE_ACCEPTED);
+                            alertAcceptance(applicant);
                         }
-						
-                        new Thread(new Runnable(){
-
-							@SuppressWarnings("unchecked")
-							@Override
-							public void run() {
-								JSONParser parser = new JSONParser();
-						    	JSONObject jsonObject = null;
-						    	try {
-									jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
-								} catch (IOException | ParseException e) {
-									e.printStackTrace();
-								};
-								JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
-								playerobj.put("state", "accepted");
-								jsonObject.put(StateUUID, playerobj);
-								FileWriter file;
-								try {
-									file = new FileWriter("applications.json");
-									file.write(jsonObject.toJSONString());
-						    		file.flush();
-						    		file.close();
-								} catch (IOException e1) {
-									e1.printStackTrace();
-								}
-								
-							}
-                        	
-                        }).start();
                         pendingApplications.remove(applicationUUID);
-                    break;
+                        break;
                         
                     case "deny":
                         application.setState("denied");
@@ -231,40 +225,14 @@ public class ApplicationListener implements Listener {
                         BanList banlist = Bukkit.getBanList(BanList.Type.NAME);
                         banlist.addBan(applicant.getDisplayName(), "Your application has been rejected. We wish you luck in your server search!", null, "Application Plugin");
                         final Player p = applicant;
-                        Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() { //TODO: Test to see what errors are thrown when player is not online
-                        	  public void run() {
-                        		  p.kickPlayer("Your application has been rejected. We wish you luck in your server search!");
-                        	  }
-                        	});
-                        
-                        new Thread(new Runnable(){
-
-							@SuppressWarnings("unchecked")
-							@Override
-							public void run() {
-								JSONParser parser = new JSONParser();
-						    	JSONObject jsonObject = null;
-						    	try {
-									jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
-								} catch (IOException | ParseException e) {
-									e.printStackTrace();
-								};
-								JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
-								playerobj.put("state", "denied");
-								jsonObject.put(StateUUID, playerobj);
-								FileWriter file;
-								try {
-									file = new FileWriter("applications.json");
-									file.write(jsonObject.toJSONString());
-						    		file.flush();
-						    		file.close();
-								} catch (IOException e1) {
-									e1.printStackTrace();
-								}
-								
-							}
-                        	
-                        }).start();
+                        if (applicant.isOnline()){
+	                        Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
+	                        	  public void run() {
+	                        		  p.kickPlayer("Your application has been rejected. We wish you luck in your server search!");
+	                        	  }
+	                        	});
+                        }
+                        application.changeFileState("denied");
                         pendingApplications.remove(applicationUUID);
                     break;
                         
@@ -293,57 +261,60 @@ public class ApplicationListener implements Listener {
         }
         
         //Else, look for this players application
-        for(Application application : applications) {  //TODO: This is iterated through EVERY TIME SOMEONE CHATS. Should this be fixed?
-            
-            if(application.getUsername().equals(player.getDisplayName())) {
-                switch(application.getState()) {
-                    case "started":
-                        Utils.send_message(player, "Thank you for choosing Nashborough!");
-                        Utils.send_message(player, "Which country to do you live in?");
-                        application.setState("country");
-                        break;
-                        
-                    case "country":
-                        application.setCountry(message);
-                        Utils.send_message(player, "What is your age?");
-                        application.setState("age");
-                        break;
-                        
-                    case "age":
-                        application.setAge(message);
-                        Utils.send_message(player, "How long have you been playing Minecraft for?");
-                        application.setState("experience");
-                        break;
-                        
-                    case "experience":
-                        application.setExperience(message);
-                        Utils.send_message(player, "If you would like, provide us with a link to an album of your previous builds.");
-                        application.setState("album");
-                        break;
-                        
-                    case "album":
-                        application.setAlbum(message);
-                        application.setState("pending");
-                        application.submit();
-                        Utils.send_message(player, "That's all! We'll get to your application as soon as possible.");
-                        
-                        for(Player p : getServer().getOnlinePlayers()) {
-                            if(p.isOp()) {
-                                Utils.send_message(p, "A new application was submitted!");
-                                Utils.send_message(p, "Applications awaiting review: " + getPendingApplications().size());
-                            }
+        if(applications.containsKey(player.getUniqueId())){ //TODO: This is iterated through EVERY TIME SOMEONE CHATS. Should this be fixed?
+        	Application application = applications.get(player.getUniqueId());
+            switch(application.getState()) {
+                case "started":
+                    Utils.send_message(player, "Thank you for choosing Nashborough!");
+                    Utils.send_message(player, "Which country to do you live in?");
+                    application.setState("country");
+                    break;
+                    
+                case "country":
+                    application.setCountry(message);
+                    Utils.send_message(player, "What is your age?");
+                    application.setState("age");
+                    break;
+                    
+                case "age":
+                    application.setAge(message);
+                    Utils.send_message(player, "How long have you been playing Minecraft for?");
+                    application.setState("experience");
+                    break;
+                    
+                case "experience":
+                    application.setExperience(message);
+                    Utils.send_message(player, "If you would like, provide us with a link to an album of your previous builds.");
+                    application.setState("album");
+                    break;
+                    
+                case "album":
+                    application.setAlbum(message);
+                    application.setState("pending");
+                    application.submit();
+                    Utils.send_message(player, "That's all! We'll get to your application as soon as possible.");
+                    
+                    for(Player p : getServer().getOnlinePlayers()) {
+                        if(p.isOp()) {
+                            Utils.send_message(p, "A new application was submitted!");
+                            Utils.send_message(p, "Applications awaiting review: " + getPendingApplications().size());
                         }
-                        
-                        break;
-                        
-                    //Application is pending, denied, or accepted
-                    default:
-                        return false;
-                }
+                    }
+                    
+                    break;
                 
-                //Message handled
-                return true;
+                case "selecting":
+                	//TODO: Handle selecting messages
+                	
+                	break;
+                    
+                //Application is pending, denied, or accepted
+                default:
+                    return false;
             }
+            
+            //Message handled
+            return true;
         }
         
         //Message unhandled
@@ -352,23 +323,16 @@ public class ApplicationListener implements Listener {
     
     private HashMap<UUID, Application> getPendingApplications() {
         HashMap<UUID, Application> pApplications = new HashMap<UUID, Application>();
-        for(Application application : applications) {
-            if(application.getState() == "pending") {
-                pApplications.put(application.getUUID(),application);
+        for (Map.Entry<UUID, Application> entry : applications.entrySet()) {
+            if (entry.getValue().getState().equals("pending")){
+            	pApplications.put(entry.getValue().getUUID(),entry.getValue());
             }
-        }
-        
+        }        
         return pApplications;
     }
     
     private Application getApplicationForPlayer(Player player) {
-        for(Application application: applications) {
-            if(application.getUsername().equals(player.getDisplayName())) {
-                return application;
-            }
-        }
-        
-        return null;
+        return applications.get(player.getUniqueId());
     }
     
     private void loadSavedApplications() {
@@ -378,24 +342,9 @@ public class ApplicationListener implements Listener {
     	try {
     		Object obj = parser.parse(new FileReader("applications.json"));
     		jsonObject = (JSONObject) obj;
-    	} catch (FileNotFoundException e) {
-    		jsonObject = new JSONObject();
-    		FileWriter file;
-			try {
-				file = new FileWriter("applications.json");
-				file.write(jsonObject.toJSONString());
-	    		file.flush();
-	    		file.close();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-    		
-     
-    	} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+    	} catch (IOException|ParseException e) {
+    		e.printStackTrace();     
+    	}
     	Object[] keys = jsonObject.keySet().toArray();
 
 		for (Object UUID : keys){
@@ -409,7 +358,27 @@ public class ApplicationListener implements Listener {
 			String string = (String) player.get("UUID");
 			UUID uuid = java.util.UUID.fromString(string);
 			app.setUUID(uuid);
-			applications.add(app);
+			applications.put(uuid,app);
 		}
+    }
+    
+    private void alertAcceptance(Player applicant){
+    	Utils.send_message(applicant, MESSAGE_ACCEPTED);
+    	applicant.setGameMode(GameMode.SURVIVAL);
+        applications.get(applicant.getUniqueId()).changeFileState("selecting");
+        messageLocationOptions(applicant);
+    }
+    
+    private void messageLocationOptions(Player player){
+    	selectingPlayers.put(player, player.getUniqueId()); 
+    	Utils.send_message(player, MESSAGE_SELECTING);
+    	Utils.send_message(player, "Here are your options. To select one, type the name of the location in chat:"); 
+    	Utils.send_message(player, " ");
+    	Utils.send_message(player, WEST_AUTUMNPORT_INFO);
+    	Utils.send_message(player, FELLFRIN_INFO);
+    	Utils.send_message(player, SORRENTO_INFO);
+    	Utils.send_message(player, WEST_NASH_INFO);
+    	Utils.send_message(player, SOUTH_NASH_INFO);
+    	
     }
 }
