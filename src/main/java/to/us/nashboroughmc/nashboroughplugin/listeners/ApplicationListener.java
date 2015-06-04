@@ -9,7 +9,6 @@ import static org.bukkit.Bukkit.getLogger;
 import static org.bukkit.Bukkit.getServer;
 
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,6 +18,7 @@ import java.util.UUID;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -51,10 +51,10 @@ public class ApplicationListener implements Listener {
     private static final int[]  WEST_AUTUMNPORT_COORDS = {106, 69, -498};
     
     private static final String FELLFRIN_INFO   = "Fellfrin: A survival-styled village featuring cabins and cottages. Style: Wooden";
-    private static final int[]  FELLFRIN_COORDS = {-224, 71, -311};
+    private static final int[]  FELLFRIN_COORDS = {-224, 72, -311};
     
     private static final String SORRENTO_INFO   = "Sorrento: A suburn connecting Autumnport and Nashborough. Style: Wooden, Stone";
-    private static final int[]  SORRENTO_COORDS = {525, 70, -321};
+    private static final int[]  SORRENTO_COORDS = {525, 72, -321};
     
     private static final String WEST_NASH_INFO   = "West Nashborough: An underdeveloped suburb in need of a community. Style: Wooden, Brick, Stone";
     private static final int[]  WEST_NASH_COORDS = {-245, 64, 145};
@@ -95,6 +95,9 @@ public class ApplicationListener implements Listener {
         	case "building"	: 	Utils.send_message(player, MESSAGE_BUILDING);  break;
         	}
         }
+        else{
+        	Utils.send_message(player, "Welcome to the Nashborough Server! Feel free to explore the city, and when you're ready to get started, use the /apply command.");
+        }
         
         if(player.isOp()) {
             if(pendingApplications.size() > 0) {
@@ -119,9 +122,11 @@ public class ApplicationListener implements Listener {
             
                 if(application != null) {
                     switch(application.getState()) {
-                        case "pending":  Utils.send_message(player, MESSAGE_PENDING);  break;
-                        case "accepted": Utils.send_message(player, MESSAGE_ACCEPTED); break;
-                        case "denied":   Utils.send_message(player, MESSAGE_DENIED);   break;
+                        case "pending":   Utils.send_message(player, MESSAGE_PENDING);  break;
+                        case "accepted":  Utils.send_message(player, MESSAGE_ACCEPTED); break;
+                        case "denied":    Utils.send_message(player, MESSAGE_DENIED);   break;
+                        case "selecting": messageLocationOptions(player);   break;
+                        case "building":  Utils.send_message(player, MESSAGE_BUILDING);   break;
                         default: handleMessage(player, null); break;
                     }
 
@@ -219,6 +224,7 @@ public class ApplicationListener implements Listener {
                         
                     case "deny":
                         application.setState("denied");
+                        application.changeFileState("denied");
                         if(applicant != null && applicant.isOnline()) {
                             Utils.send_message(applicant, MESSAGE_DENIED);
                         }
@@ -232,7 +238,6 @@ public class ApplicationListener implements Listener {
 	                        	  }
 	                        	});
                         }
-                        application.changeFileState("denied");
                         pendingApplications.remove(applicationUUID);
                     break;
                         
@@ -304,7 +309,26 @@ public class ApplicationListener implements Listener {
                     break;
                 
                 case "selecting":
-                	//TODO: Handle selecting messages
+	                	switch(message.toLowerCase()){
+	                	case "autumnport":  player.teleport(new Location(Bukkit.getWorld("world"), WEST_AUTUMNPORT_COORDS[0], WEST_AUTUMNPORT_COORDS[1], WEST_AUTUMNPORT_COORDS[2])); 
+	                		updateToBuilder(player);
+	                		break;
+	                	case "fellfrin": player.teleport(new Location(Bukkit.getWorld("world"), FELLFRIN_COORDS[0], FELLFRIN_COORDS[1], FELLFRIN_COORDS[2]));
+	                		//TODO: Give kits here
+	                		updateToBuilder(player);
+	                		break;
+	                	case "sorrento": player.teleport(new Location(Bukkit.getWorld("world"), SORRENTO_COORDS[0], SORRENTO_COORDS[1], SORRENTO_COORDS[2]));  
+	                		updateToBuilder(player);
+	                		break;
+	                	case "west nashborough": player.teleport(new Location(Bukkit.getWorld("world"), WEST_NASH_COORDS[0], WEST_NASH_COORDS[1], WEST_NASH_COORDS[2]));  
+	                		updateToBuilder(player);
+	                		break;
+	                	case "south nashborough": player.teleport(new Location(Bukkit.getWorld("world"), SOUTH_NASH_COORDS[0], SOUTH_NASH_COORDS[1], SOUTH_NASH_COORDS[2]));  
+	                		updateToBuilder(player);
+	                		break;
+	                	default: return false;
+                		
+                	}
                 	
                 	break;
                     
@@ -343,7 +367,7 @@ public class ApplicationListener implements Listener {
     		Object obj = parser.parse(new FileReader("applications.json"));
     		jsonObject = (JSONObject) obj;
     	} catch (IOException|ParseException e) {
-    		e.printStackTrace();     
+    		e.printStackTrace();
     	}
     	Object[] keys = jsonObject.keySet().toArray();
 
@@ -362,10 +386,15 @@ public class ApplicationListener implements Listener {
 		}
     }
     
-    private void alertAcceptance(Player applicant){
+    private void alertAcceptance(final Player applicant){
     	Utils.send_message(applicant, MESSAGE_ACCEPTED);
-    	applicant.setGameMode(GameMode.SURVIVAL);
-        applications.get(applicant.getUniqueId()).changeFileState("selecting");
+    	
+        Application application = applications.get(applicant.getUniqueId());
+        Utils.send_message(applicant, "");
+        Utils.send_message(applicant, application.getCountry());
+        Utils.send_message(applicant, "");
+        application.setState("selecting");
+        application.changeFileState("selecting");
         messageLocationOptions(applicant);
     }
     
@@ -379,6 +408,17 @@ public class ApplicationListener implements Listener {
     	Utils.send_message(player, SORRENTO_INFO);
     	Utils.send_message(player, WEST_NASH_INFO);
     	Utils.send_message(player, SOUTH_NASH_INFO);
-    	
+    }
+    
+    private void updateToBuilder(final Player applicant){
+    	Utils.send_message(applicant, MESSAGE_BUILDING);
+    	Application application = applications.get(applicant.getUniqueId());
+    	application.setState("building");
+        application.changeFileState("building");
+    	Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
+        	  public void run() {
+        		applicant.setGameMode(GameMode.SURVIVAL);
+        	  }
+        	});
     }
 }

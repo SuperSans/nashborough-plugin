@@ -5,8 +5,9 @@
  */
 package to.us.nashboroughmc.nashboroughplugin;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -40,6 +41,21 @@ public class NashboroughPlugin extends JavaPlugin {
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
+        } else {
+        	BufferedReader br;
+			try {
+				br = new BufferedReader(new FileReader("applications.json"));
+				if (br.readLine() == null) {
+					JSONObject jsonObject = new JSONObject();
+					FileWriter file = new FileWriter("applications.json");
+					file.write(jsonObject.toJSONString());
+		    		file.flush();
+		    		file.close();
+	        	}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}     
+        	
         }
         if(!accepted_applications.exists()) { //If applications.json does not exist
         	JSONObject jsonObject = new JSONObject();
