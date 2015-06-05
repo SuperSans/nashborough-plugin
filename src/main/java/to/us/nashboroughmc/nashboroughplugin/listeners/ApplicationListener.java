@@ -57,20 +57,24 @@ public class ApplicationListener implements Listener {
     private static final String MESSAGE_SELECTING = "Now that your preliminary application has been accepted, you must choose where to build your home.";
     private static final String MESSAGE_BUILDING  = "You're in the building stage of your membership. When your survival build is completed, use the /submitbuild command and a moderator will review your build.";
     
-    private static final String WEST_AUTUMNPORT_INFO   = "Autumnport: West of the coastal town, Autumnport \nStyle: Wooden, Stone";
+    private static final String WEST_AUTUMNPORT_INFO   = "Autumnport: West of the coastal town, Autumnport.";
     private static final int[]  WEST_AUTUMNPORT_COORDS = {106, 69, -498};
     
-    private static final String FELLFRIN_INFO   = "Fellfrin: A survival-styled village featuring cabins and cottages. \nStyle: Wooden";
+    private static final String FELLFRIN_INFO   = "Fellfrin: A survival-styled village featuring cabins and cottages.";
     private static final int[]  FELLFRIN_COORDS = {-224, 72, -311};
     
-    private static final String SORRENTO_INFO   = "Sorrento: A suburn connecting Autumnport and Nashborough. \nStyle: Wooden, Stone";
+    private static final String SORRENTO_INFO   = "Sorrento: A suburb connecting Autumnport and Nashborough.";
     private static final int[]  SORRENTO_COORDS = {525, 72, -321};
     
-    private static final String WEST_NASH_INFO   = "West Nashborough: An underdeveloped suburb in need of a community. \nStyle: Wooden, Brick, Stone";
+    private static final String WEST_NASH_INFO   = "West Nashborough: An underdeveloped suburb in need of development.";
     private static final int[]  WEST_NASH_COORDS = {-245, 64, 145};
     
-    private static final String SOUTH_NASH_INFO   = "South Nashborough: An underdeveloped suburb with a farming community south of it. \nStyle: Wooden, Brick, Stone";
+    private static final String SOUTH_NASH_INFO   = "South Nashborough: An underdeveloped suburb with a farming community south of it.";
     private static final int[]  SOUTH_NASH_COORDS = {-65, 67, 429};
+    
+    private static final String APPLICATION_JSON_PATH = "plugins/ApplicationPlugin/applications.json";
+    private static final String SUBMITTED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/submitted_builds.json";
+    private static final String APPROVED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/approved_builds.json";
     
     private final HashMap<UUID, Application> applications;
     private HashMap<UUID, Application> pendingApplications;
@@ -553,7 +557,7 @@ public class ApplicationListener implements Listener {
     	JSONObject jsonObject = null;
     	 
     	try {
-    		Object obj = parser.parse(new FileReader("applications.json"));
+    		Object obj = parser.parse(new FileReader(APPLICATION_JSON_PATH));
     		jsonObject = (JSONObject) obj;
     	} catch (IOException|ParseException e) {
     		e.printStackTrace();
@@ -593,13 +597,9 @@ public class ApplicationListener implements Listener {
     	Utils.send_message(player, "Here are your options. To select one, type the name of the location in chat:"); 
     	Utils.send_message(player, " ");
     	Utils.send_message(player, WEST_AUTUMNPORT_INFO);
-    	Utils.send_message(player, " ");
     	Utils.send_message(player, FELLFRIN_INFO);
-    	Utils.send_message(player, " ");
     	Utils.send_message(player, SORRENTO_INFO);
-    	Utils.send_message(player, " ");
     	Utils.send_message(player, WEST_NASH_INFO);
-    	Utils.send_message(player, " ");
     	Utils.send_message(player, SOUTH_NASH_INFO);
     }
     

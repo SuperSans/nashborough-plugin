@@ -27,6 +27,7 @@ public class Application {
     private String country;
     private String experience;
     private String album;
+    private static final String APPLICATION_JSON_PATH = "plugins/ApplicationPlugin/applications.json";
     
     public Application(String string) {
         this.state = string;
@@ -100,7 +101,7 @@ public class Application {
     	JSONParser parser = new JSONParser();
     	JSONObject jsonObject = null;
     	try {
-			jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
+			jsonObject = (JSONObject) parser.parse(new FileReader(APPLICATION_JSON_PATH));
 		} catch (IOException | ParseException e) {
 			e.printStackTrace();
 		};
@@ -115,7 +116,7 @@ public class Application {
     	jsonObject.put(getUUID().toString(),obj);
     	FileWriter file;
 		try {
-			file = new FileWriter("applications.json");
+			file = new FileWriter(APPLICATION_JSON_PATH);
 			file.write(jsonObject.toJSONString());
     		file.flush();
     		file.close();
@@ -134,7 +135,7 @@ public class Application {
 				JSONParser parser = new JSONParser();
 		    	JSONObject jsonObject = null;
 		    	try {
-					jsonObject = (JSONObject) parser.parse(new FileReader("applications.json"));
+					jsonObject = (JSONObject) parser.parse(new FileReader(APPLICATION_JSON_PATH));
 				} catch (IOException | ParseException e) {
 					e.printStackTrace();
 				};
@@ -143,7 +144,7 @@ public class Application {
 				jsonObject.put(StateUUID, playerobj);
 				FileWriter file;
 				try {
-					file = new FileWriter("applications.json");
+					file = new FileWriter(APPLICATION_JSON_PATH);
 					file.write(jsonObject.toJSONString());
 		    		file.flush();
 		    		file.close();

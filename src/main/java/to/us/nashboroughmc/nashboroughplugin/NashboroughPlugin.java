@@ -5,14 +5,13 @@
  */
 package to.us.nashboroughmc.nashboroughplugin;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
 import to.us.nashboroughmc.nashboroughplugin.listeners.ApplicationListener;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -22,47 +21,41 @@ import org.json.simple.JSONObject;
 public class NashboroughPlugin extends JavaPlugin {
     
     private ApplicationListener applicationListener;
+    private static final String APPLICATION_JSON_PATH = "plugins/ApplicationPlugin/applications.json";
+    private static final String SUBMITTED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/submitted_builds.json";
+    private static final String APPROVED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/approved_builds.json";
+    private static final String CITIES_JSON_PATH = "plugins/ApplicationPlugin/cities.json";
     
     @Override 
     public void onEnable() {
-        applicationListener = new ApplicationListener();
-        getServer().getPluginManager().registerEvents(applicationListener, this);
-        File applications = new File("applications.json");
-        File submitted_builds = new File("submitted_builds.json");
-        File accepted_builds = new File("accepted_builds.json");
-        File accepted_applications = new File("accepted_applications.json"); //TODO: These two JSONs currently do anything. Do we actually need them?
-        File denied_applications = new File("denied_applications.json");
+        
+        
+        File directory = new File("plugins/ApplicationPlugin");
+		if (!directory.exists()){
+			new File("plugins/ApplicationPlugin").mkdir();
+			Bukkit.getLogger().info("Creating new directory");
+		}
+		
+        File applications = new File(APPLICATION_JSON_PATH);
+        File submitted_builds = new File(SUBMITTED_BUILDS_JSON_PATH);
+        File approved_builds = new File(APPROVED_BUILDS_JSON_PATH);
+        File cities = new File(CITIES_JSON_PATH);
         
         if(!applications.exists()) { //If applications.json does not exist
         	JSONObject jsonObject = new JSONObject();
 			try {
-				FileWriter file = new FileWriter("applications.json");
+				FileWriter file = new FileWriter(APPLICATION_JSON_PATH);
 				file.write(jsonObject.toJSONString());
 	    		file.flush();
 	    		file.close();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
-        } else {
-        	BufferedReader br;
-			try {
-				br = new BufferedReader(new FileReader("applications.json"));
-				if (br.readLine() == null) {
-					JSONObject jsonObject = new JSONObject();
-					FileWriter file = new FileWriter("applications.json");
-					file.write(jsonObject.toJSONString());
-		    		file.flush();
-		    		file.close();
-	        	}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}     
-        	
         }
         if(!submitted_builds.exists()) {
         	JSONObject jsonObject = new JSONObject();
 			try {
-				FileWriter file = new FileWriter("submitted_builds.json");
+				FileWriter file = new FileWriter(SUBMITTED_BUILDS_JSON_PATH);
 				file.write(jsonObject.toJSONString());
 	    		file.flush();
 	    		file.close();
@@ -70,10 +63,10 @@ public class NashboroughPlugin extends JavaPlugin {
 				e1.printStackTrace();
 			}
         }
-        if(!accepted_builds.exists()) {
+        if(!approved_builds.exists()) {
         	JSONObject jsonObject = new JSONObject();
 			try {
-				FileWriter file = new FileWriter("accepted_builds.json");
+				FileWriter file = new FileWriter(APPROVED_BUILDS_JSON_PATH);
 				file.write(jsonObject.toJSONString());
 	    		file.flush();
 	    		file.close();
@@ -81,10 +74,10 @@ public class NashboroughPlugin extends JavaPlugin {
 				e1.printStackTrace();
 			}
         }
-        if(!accepted_applications.exists()) {
+        if(!approved_builds.exists()) {
         	JSONObject jsonObject = new JSONObject();
 			try {
-				FileWriter file = new FileWriter("accepted_applications.json");
+				FileWriter file = new FileWriter(CITIES_JSON_PATH);
 				file.write(jsonObject.toJSONString());
 	    		file.flush();
 	    		file.close();
@@ -92,17 +85,9 @@ public class NashboroughPlugin extends JavaPlugin {
 				e1.printStackTrace();
 			}
         }
-        if(!denied_applications.exists()) {
-        	JSONObject jsonObject = new JSONObject();
-			try {
-				FileWriter file = new FileWriter("denied_applications.json");
-				file.write(jsonObject.toJSONString());
-	    		file.flush();
-	    		file.close();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-        }
+        
+        applicationListener = new ApplicationListener();
+        getServer().getPluginManager().registerEvents(applicationListener, this);
     }
 
     @Override
