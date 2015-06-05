@@ -28,6 +28,8 @@ public class NashboroughPlugin extends JavaPlugin {
         applicationListener = new ApplicationListener();
         getServer().getPluginManager().registerEvents(applicationListener, this);
         File applications = new File("applications.json");
+        File submitted_builds = new File("submitted_builds.json");
+        File accepted_builds = new File("accepted_builds.json");
         File accepted_applications = new File("accepted_applications.json"); //TODO: These two JSONs currently do anything. Do we actually need them?
         File denied_applications = new File("denied_applications.json");
         
@@ -57,7 +59,29 @@ public class NashboroughPlugin extends JavaPlugin {
 			}     
         	
         }
-        if(!accepted_applications.exists()) { //If applications.json does not exist
+        if(!submitted_builds.exists()) {
+        	JSONObject jsonObject = new JSONObject();
+			try {
+				FileWriter file = new FileWriter("submitted_builds.json");
+				file.write(jsonObject.toJSONString());
+	    		file.flush();
+	    		file.close();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+        }
+        if(!accepted_builds.exists()) {
+        	JSONObject jsonObject = new JSONObject();
+			try {
+				FileWriter file = new FileWriter("accepted_builds.json");
+				file.write(jsonObject.toJSONString());
+	    		file.flush();
+	    		file.close();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+        }
+        if(!accepted_applications.exists()) {
         	JSONObject jsonObject = new JSONObject();
 			try {
 				FileWriter file = new FileWriter("accepted_applications.json");
@@ -68,7 +92,7 @@ public class NashboroughPlugin extends JavaPlugin {
 				e1.printStackTrace();
 			}
         }
-        if(!denied_applications.exists()) { //If applications.json does not exist
+        if(!denied_applications.exists()) {
         	JSONObject jsonObject = new JSONObject();
 			try {
 				FileWriter file = new FileWriter("denied_applications.json");

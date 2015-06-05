@@ -1,13 +1,43 @@
 name: NashboroughPlugin
 main: to.us.nashboroughmc.nashboroughplugin.NashboroughPlugin
-version: SNAPSHOT-01
+version: SNAPSHOT-02
 
 commands:
   apply:
     description: sends in an application to become an official Nashbro
     usage: /apply
-  
+
   reviewapps:
     description: review pending applications and approve or deny them
     usage: /reviewapps
     permission: op
+  submitbuild:
+    description: Submits build for review.
+    usage: /submitbuild
+    permission: MCPlugin.submitbuild
+    permission-message: You do not have permission
+  reviewlist:
+    description: Displays list of submitted builds.
+    usage: /reviewlist
+    permission: MCPlugin.reviewlist
+    permission-message: You do not have permission
+  reviewlog:
+    description: Displays list of reviewed build.
+    usage: /reviewlog
+    permission: MCPlugin.reviewlog
+    permission-message: You do not have permission
+  reviewbuild:
+    description: Teleports player to review selected build.
+    usage: /reviewbuild [player name]
+    permission: MCPlugin.reviewbuild
+    permission-message: You do not have permission
+  approvebuild:
+    description: Approves selected build.
+    usage: /approvebuild [player name]
+    permission: MCPlugin.approvebuild
+    permission-message: You do not have permission
+  rejectbuild:
+    description: Denies selected build.
+    usage: /rejectbuild [player name]
+    permission: MCPlugin.rejectbuild
+    permission-message: You do not have permission
