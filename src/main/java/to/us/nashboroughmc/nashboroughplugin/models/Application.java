@@ -126,7 +126,7 @@ public class Application {
 		}
     }
     
-    public void changeFileState(final String state){
+    public void changeFileState(){
     	final String StateUUID = getUUID().toString();
     	new Thread(new Runnable(){
 

@@ -82,8 +82,8 @@ public class ApplicationListener implements Listener {
     
     //IMPORTED FROM BUILD REVIEW PLUGIN
     public static ArrayList<String> submittedPlayerList = new ArrayList<String>();
-	public static HashMap<UUID, Build> submittedBuilds = new HashMap<UUID, Build>();
-	public static HashMap<UUID, Build> approvedBuilds = new HashMap<UUID, Build>();
+	public static HashMap<String, Build> submittedBuilds = new HashMap<String, Build>();
+	public static HashMap<String, Build> approvedBuilds = new HashMap<String, Build>();
 	
 	public static String approvalMessage = "Your build has been approved!";
 	public static String rejectionMessage = "Your build has not been approved at this time."
@@ -123,7 +123,7 @@ public class ApplicationListener implements Listener {
     
     @EventHandler
     public void onJoinEvent(PlayerJoinEvent ev) {
-        Player player = ev.getPlayer(); //TODO: Handle whether or not a player has applied. Should we make 2 separate JSONs for denied and accepted applications as well?
+        Player player = ev.getPlayer();
         if (applications.containsKey(player.getUniqueId())){
         	Application application = applications.get(player.getUniqueId());
         	switch(application.getState()){
@@ -144,18 +144,24 @@ public class ApplicationListener implements Listener {
             }
         }
         
-        if(player.isOp() && !submittedPlayerList.isEmpty()){ //Imported from Build Review Plugin TODO: Read the JSONs from file to set hashmaps from null
+        if(player.isOp() && !submittedPlayerList.isEmpty()){ //Imported from Build Review Plugin
 			player.sendMessage(ChatColor.DARK_AQUA+"[MOD MESSAGE] "+ChatColor.AQUA+"New builds submitted for approval. Use /reviewlist");
 		}
-		if(approvedBuilds.containsKey(player)){
-			if(approvedBuilds.get(player.getName()) == true){
+		if(approvedBuilds.containsKey(player.getDisplayName())){
+			if(approvedBuilds.containsKey(player.getDisplayName())){
 				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
-				approvedBuilds.remove(player.getName());
+				approvedBuilds.get(player.getDisplayName()).setState("completed");
+				approvedBuilds.get(player.getDisplayName()).changeFileState();
+				approvedBuilds.remove(player.getDisplayName());
+				Application app = applications.get(player.getUniqueId());
+				app.setState("completed");
+				app.changeFileState();
 				player.setGameMode(GameMode.CREATIVE);
 			}
-			else if(approvedBuilds.get(player.getName()) == false){
+			else if(submittedBuilds.get(player.getDisplayName()).getState().equals("rejected")){
 				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+rejectionMessage);
-				approvedBuilds.remove(player.getName());
+				submittedBuilds.get(player.getDisplayName()).remove();
+				submittedBuilds.remove(player.getDisplayName());
 			}
 		}
     }
@@ -247,11 +253,19 @@ public class ApplicationListener implements Listener {
                 }
                     
                 break;
-            case COMMAND_SUBMIT_BUILD: //TODO: Implement these features from the build review plugin
-    			if(!submittedPlayerList.contains(player.getName())){
-    				submittedPlayerList.add(player.getName());
+            case COMMAND_SUBMIT_BUILD:
+    			if(!submittedPlayerList.contains(player.getDisplayName())){
+    				submittedPlayerList.add(player.getDisplayName());
     			}
-    			submittedBuilds.put(player.getName(), player.getLocation());
+    			Build build = new Build(player);
+    			build.setLocation(player.getLocation());
+    			build.setReviewer("None");
+    			build.setState("submitted");
+    			build.setTimestamp(new Date());
+    			build.setUsername(player.getDisplayName());
+    			build.setUUID(player.getUniqueId());
+    			build.submit();
+    			submittedBuilds.put(player.getDisplayName(), build);
     			player.sendMessage(ChatColor.AQUA+"Your build has been submitted for approval");
     			for(int i = 0; i < Bukkit.getServer().getOnlinePlayers().length; i++){
     				if(Bukkit.getServer().getOnlinePlayers()[i].isOp()){
@@ -274,26 +288,28 @@ public class ApplicationListener implements Listener {
     			break;
     			
             case COMMAND_REVIEW_LOG:
-            	if(submitters.isEmpty()){
-    				player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page 1/"+(int)(Math.ceil((double)submitters.size()/3))+")"+ChatColor.WHITE+" -----");
+            	if(submittedPlayerList.isEmpty()){
+    				player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page 1/"+(int)(Math.ceil((double)submittedPlayerList.size()/3))+")"+ChatColor.WHITE+" -----");
     				player.sendMessage(ChatColor.AQUA+" No builds");
     			}else{
     				if(args.length == 0){
-    					player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page 1/"+(int)(Math.ceil((double)submitters.size()/3))+")"+ChatColor.WHITE+" -----");
-		    			for(int i = submitters.size()-1; i >= ((submitters.size()-3) + Math.abs(submitters.size()-3))/2; i--){
-		    				player.sendMessage(ChatColor.WHITE+" - "+ChatColor.AQUA+reviewers.get(i)+reviewStatus.get(i)+submitters.get(i)+"'s build on "+timestamps.get(i));
+    					player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page 1/"+(int)(Math.ceil((double)submittedPlayerList.size()/3))+")"+ChatColor.WHITE+" -----");
+		    			for(int i = submittedPlayerList.size()-1; i >= ((submittedPlayerList.size()-3) + Math.abs(submittedPlayerList.size()-3))/2; i--){
+		    				Build ind_build = submittedBuilds.get(submittedPlayerList.get(i));
+		    				player.sendMessage(ChatColor.WHITE+" - "+ChatColor.AQUA+ind_build.getReviewer()+ind_build.getState()+ind_build.getUsername()+"'s build on "+ind_build.getTimestamp().toString()); //TODO: FIX FORMATTING
 		    			}
     				}else{
     					int pageNum = Integer.parseInt(args[0]);
-    					player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page "+pageNum+"/"+(int)(Math.ceil((double)submitters.size()/3))+")"+ChatColor.WHITE+" -----");
-    					for(int i = (submitters.size()-1)-((pageNum-1)*3); i >= ((((submitters.size()-3)-((pageNum-1)*3)) + Math.abs((submitters.size()-3)-((pageNum-1)*3)))/2); i--){
-		    				player.sendMessage(ChatColor.WHITE+" - "+ChatColor.AQUA+reviewers.get(i)+reviewStatus.get(i)+submitters.get(i)+"'s build on "+timestamps.get(i));
+    					player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page "+pageNum+"/"+(int)(Math.ceil((double)submittedPlayerList.size()/3))+")"+ChatColor.WHITE+" -----");
+    					for(int i = (submittedPlayerList.size()-1)-((pageNum-1)*3); i >= ((((submittedPlayerList.size()-3)-((pageNum-1)*3)) + Math.abs((submittedPlayerList.size()-3)-((pageNum-1)*3)))/2); i--){
+    						Build ind_build = submittedBuilds.get(submittedPlayerList.get(i));
+		    				player.sendMessage(ChatColor.WHITE+" - "+ChatColor.AQUA+ind_build.getReviewer()+ind_build.getState()+ind_build.getUsername()+"'s build on "+ind_build.getTimestamp().toString());
 		    			}
     				}
     			}
             	
             	break;
-            case COMMAND_REVIEW_BUILD:
+            case COMMAND_REVIEW_BUILD: 
             	if(args.length == 0){
     				player.sendMessage(ChatColor.RED+ "Usage: /reviewbuild [player name] [-i]");
     				return true;
@@ -301,24 +317,23 @@ public class ApplicationListener implements Listener {
     			playerName = args[0];
     			reviewer = (Player) player;
 				if(args.length == 2){
-					if(args[1].equalsIgnoreCase("i")){
-						if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){ //TODO: Fix these deprecated methods
-							player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now hidden from "+playerName);
-							Bukkit.getServer().getPlayer(playerName).hidePlayer(reviewer);
+					if(submittedBuilds.containsKey(playerName)){
+						if(args[1].equalsIgnoreCase("i")){
+							if(isOnline(playerName)){
+								player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now hidden from "+playerName);
+								getPlayer(playerName).hidePlayer(reviewer);
+							}
 						}
-					}
-    			}
-    			if(submittedBuilds.containsKey(playerName)){
-    				reviewer.teleport(submittedBuilds.get(playerName));
-    				player.sendMessage(ChatColor.DARK_AQUA+playerName+"'s Build");
-    			}else{
-    				player.sendMessage(ChatColor.RED+ "Player does not exist.");
-    				return true;
-    			}
-    			
+						reviewer.teleport(submittedBuilds.get(playerName).getLocation());
+	    				player.sendMessage(ChatColor.DARK_AQUA+playerName+"'s Build");
+					}else{
+	    				player.sendMessage(ChatColor.RED+ "Player does not exist.");
+	    				return true;
+	    			}
+    			}    			
     			break;
             
-            case COMMAND_APPROVE_BUILD:
+            case COMMAND_APPROVE_BUILD: 
             	if(args.length == 0){
     				player.sendMessage(ChatColor.RED+ "Usage: /approvebuild [player name]");
     				return true;
@@ -328,17 +343,24 @@ public class ApplicationListener implements Listener {
     			reviewDate = new Date();
     			if(submittedBuilds.containsKey(playerName)){
     				player.sendMessage(ChatColor.DARK_AQUA+playerName+"'s build was approved");
-    				reviewers.add(player.getName());
-    				submitters.add(playerName);
-    				timestamps.add(reviewDate.toString());
-    				reviewStatus.add(" approved ");
+    				Build approved_build = submittedBuilds.get(playerName);
+    				approved_build.setState("approved");
+    				approved_build.setReviewer(player.getDisplayName());
+    				approved_build.setTimestamp(new Date());
+    				approved_build.changeFileState();
     				submittedBuilds.remove(playerName);
     				submittedPlayerList.remove(playerName);
-    				approvedBuilds.put(playerName, true);
-    				if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){  //TODO: Fix these deprecated methods
-    					Bukkit.getServer().getPlayer(playerName).sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
-    					Bukkit.getServer().getPlayer(playerName).setGameMode(GameMode.CREATIVE);
-    					Bukkit.getServer().getPlayer(playerName).showPlayer(reviewer);
+    				approvedBuilds.put(playerName, approved_build);
+    				if(isOnline(playerName)){
+    					Player online_player = getPlayer(playerName);
+    					online_player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
+    					online_player.setGameMode(GameMode.CREATIVE); //TODO: Async task
+    					approved_build.setState("completed");
+    					Application app = applications.get(online_player.getUniqueId());
+    					app.setState("completed");
+    					app.changeFileState();
+    					approved_build.changeFileState();
+    					online_player.showPlayer(reviewer);
     					player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now visible to "+playerName);
     				}
     				return true;
@@ -356,16 +378,16 @@ public class ApplicationListener implements Listener {
     			reviewDate = new Date();
     			if(submittedBuilds.containsKey(playerName)){
     				player.sendMessage(ChatColor.DARK_AQUA+playerName+"'s build was denied.");
-    				reviewers.add(player.getName());
-    				submitters.add(playerName);
-    				timestamps.add(reviewDate.toString());
-    				reviewStatus.add(" rejected ");
-    				submittedBuilds.remove(playerName);
+    				Build rejected_build = submittedBuilds.get(playerName);
+    				rejected_build.setState("rejected");
+    				rejected_build.changeFileState();
     				submittedPlayerList.remove(playerName);
-    				approvedBuilds.put(playerName, false);
-    				if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){
-    					Bukkit.getServer().getPlayer(playerName).sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+rejectionMessage);
-    					Bukkit.getServer().getPlayer(playerName).showPlayer(reviewer);
+    				if(isOnline(playerName)){
+    					Player online_player = getPlayer(playerName);
+    					online_player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+rejectionMessage);
+    					online_player.showPlayer(reviewer);
+    					rejected_build.remove();
+    					submittedBuilds.remove(playerName);
     					player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now visible to "+playerName);
     				}
     				return true;
@@ -403,7 +425,7 @@ public class ApplicationListener implements Listener {
                 switch(message.toLowerCase()) {
                     case "accept":
                         application.setState("accepted");
-                        application.changeFileState("accepted");
+                        application.changeFileState();
                         if(applicant != null && applicant.isOnline()) {
                             alertAcceptance(applicant);
                         }
@@ -412,7 +434,7 @@ public class ApplicationListener implements Listener {
                         
                     case "deny":
                         application.setState("denied");
-                        application.changeFileState("denied");
+                        application.changeFileState();
                         if(applicant != null && applicant.isOnline()) {
                             Utils.send_message(applicant, MESSAGE_DENIED);
                         }
@@ -503,7 +525,6 @@ public class ApplicationListener implements Listener {
 	                		break;
 	                	case "fellfrin": player.teleport(new Location(Bukkit.getWorld("world"), FELLFRIN_COORDS[0], FELLFRIN_COORDS[1], FELLFRIN_COORDS[2]));
 	                		//TODO: Give kits here
-	                		//TODO: Link with build acceptance
 	                		updateToBuilder(player);
 	                		break;
 	                	case "sorrento": player.teleport(new Location(Bukkit.getWorld("world"), SORRENTO_COORDS[0], SORRENTO_COORDS[1], SORRENTO_COORDS[2]));  
@@ -576,7 +597,7 @@ public class ApplicationListener implements Listener {
 		}
     }
     
-    private void loadSubmittedBuilds() {
+    private void loadSubmittedBuilds() { //TODO: Fix loading functions
     	JSONParser parser = new JSONParser();
     	JSONObject jsonObject = null;
     	 
@@ -596,7 +617,7 @@ public class ApplicationListener implements Listener {
 		}
     }
     
-    private void loadApprovedBuilds() {
+    private void loadApprovedBuilds() { 
     	//TODO: Load Approved Builds (Hashmap)
     }
     private void alertAcceptance(final Player applicant){
@@ -607,7 +628,7 @@ public class ApplicationListener implements Listener {
         Utils.send_message(applicant, application.getCountry());
         Utils.send_message(applicant, "");
         application.setState("selecting");
-        application.changeFileState("selecting");
+        application.changeFileState();
         messageLocationOptions(applicant);
     }
     
@@ -627,11 +648,28 @@ public class ApplicationListener implements Listener {
     	Utils.send_message(applicant, MESSAGE_BUILDING);
     	Application application = applications.get(applicant.getUniqueId());
     	application.setState("building");
-        application.changeFileState("building");
+        application.changeFileState();
     	Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
         	  public void run() {
         		applicant.setGameMode(GameMode.SURVIVAL);
         	  }
         	});
+    }
+    
+    private boolean isOnline(String playername){
+    	for (Player player : Bukkit.getServer().getOnlinePlayers()){
+    		if (player.getDisplayName().equals(playername)){
+    			return true;
+    		}
+    	}
+    	return false;
+    }
+    private Player getPlayer(String playername){
+    	for (Player player : Bukkit.getServer().getOnlinePlayers()){
+    		if (player.getDisplayName().equals(playername)){
+    			return player;
+    		}
+    	}
+    	return null;
     }
 }
