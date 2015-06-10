@@ -10,6 +10,7 @@ import static org.bukkit.Bukkit.getServer;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -100,6 +101,9 @@ public class ApplicationListener implements Listener {
         applications = new HashMap<UUID, Application>();
         loadSavedApplications();
         pendingApplications = getPendingApplications();
+        loadSubmittedBuilds();
+        loadApprovedBuilds();
+        
     }
     
     @EventHandler
@@ -147,20 +151,20 @@ public class ApplicationListener implements Listener {
             }
         }
         
-        /*if(player.isOp() && !MCPlugin.submittedPlayerList.isEmpty()){ //Imported from Build Review Plugin
+        if(player.isOp() && !submittedPlayerList.isEmpty()){ //Imported from Build Review Plugin TODO: Read the JSONs from file to set hashmaps from null
 			player.sendMessage(ChatColor.DARK_AQUA+"[MOD MESSAGE] "+ChatColor.AQUA+"New builds submitted for approval. Use /reviewlist");
 		}
-		if(MCPlugin.approvedBuilds.containsKey(player.getName())){
-			if(MCPlugin.approvedBuilds.get(event.getPlayer().getName()) == true){
-				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+MCPlugin.approvalMessage);
-				MCPlugin.approvedBuilds.remove(event.getPlayer().getName());
-				event.getPlayer().setGameMode(GameMode.CREATIVE);
+		if(approvedBuilds.containsKey(player)){
+			if(approvedBuilds.get(player.getName()) == true){
+				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
+				approvedBuilds.remove(player.getName());
+				player.setGameMode(GameMode.CREATIVE);
 			}
-			else if(MCPlugin.approvedBuilds.get(event.getPlayer().getName()) == false){
-				event.getPlayer().sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+MCPlugin.rejectionMessage);
-				MCPlugin.approvedBuilds.remove(event.getPlayer().getName());
+			else if(approvedBuilds.get(player.getName()) == false){
+				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+rejectionMessage);
+				approvedBuilds.remove(player.getName());
 			}
-		}*/
+		}
     }
     @EventHandler
     public void onQuitEvent(PlayerQuitEvent ev) {
@@ -180,8 +184,11 @@ public class ApplicationListener implements Listener {
 		}
 	}
     
-    public boolean handleCommand(Player player, String command) {
-        
+    public boolean handleCommand(Player player, String command, String[] args) {
+    	
+    	String playerName;
+    	Player reviewer;
+    	Date reviewDate;
         switch(command) {
             case COMMAND_APPLY:
                 Application application = getApplicationForPlayer(player);
@@ -205,28 +212,28 @@ public class ApplicationListener implements Listener {
                 break;
                 
             case COMMAND_REVIEW_APPS:
-            	ArrayList<Player> reviewers = new ArrayList<Player>();
+            	ArrayList<Player> app_reviewers = new ArrayList<Player>();
             	if (reviewingPlayers.keySet().contains(player)){
             		reviewingPlayers.remove(player);
             	}
-            	for (Player reviewer : reviewingPlayers.keySet()){
-            		reviewers.add(reviewer);
+            	for (Player reviewingplayer : reviewingPlayers.keySet()){
+            		app_reviewers.add(reviewingplayer);
             	}
-                if(reviewers.size() == 1) {
+                if(app_reviewers.size() == 1) {
 
-                	Utils.send_message(player, reviewers.get(0).getDisplayName() + " is also reviewing applications at the moment.");
+                	Utils.send_message(player, app_reviewers.get(0).getDisplayName() + " is also reviewing applications at the moment.");
                 	Utils.send_message(player, " ");
                 }
-                else if (reviewers.size() == 2){
-                	Utils.send_message(player, reviewers.get(0).getDisplayName() + " and " + reviewers.get(1).getDisplayName() + " are also reviewing applications at the moment.");
+                else if (app_reviewers.size() == 2){
+                	Utils.send_message(player, app_reviewers.get(0).getDisplayName() + " and " + app_reviewers.get(1).getDisplayName() + " are also reviewing applications at the moment.");
                 	Utils.send_message(player, " ");
                 }
-                else if (reviewers.size() > 2){
+                else if (app_reviewers.size() > 2){
                 	String message = "";
-                	for (int i = 0; i < reviewers.size() - 2; i++){
-                		message += reviewers.get(i).getDisplayName() + ", ";
+                	for (int i = 0; i < app_reviewers.size() - 2; i++){
+                		message += app_reviewers.get(i).getDisplayName() + ", ";
                 	}
-                	message += "and " + reviewers.get(reviewers.size()-1).getDisplayName() + " are also reviewing applications at the moment.";
+                	message += "and " + app_reviewers.get(app_reviewers.size()-1).getDisplayName() + " are also reviewing applications at the moment.";
 
                 	Utils.send_message(player, message);
                 	Utils.send_message(player, " ");
@@ -247,7 +254,7 @@ public class ApplicationListener implements Listener {
                 }
                     
                 break;
-            /*case COMMAND_SUBMIT_BUILD: //TODO: Implement these features from the build review plugin
+            case COMMAND_SUBMIT_BUILD: //TODO: Implement these features from the build review plugin
     			if(!submittedPlayerList.contains(player.getName())){
     				submittedPlayerList.add(player.getName());
     			}
@@ -285,7 +292,7 @@ public class ApplicationListener implements Listener {
 		    			}
     				}else{
     					int pageNum = Integer.parseInt(args[0]);
-    					senplayerder.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page "+pageNum+"/"+(int)(Math.ceil((double)submitters.size()/3))+")"+ChatColor.WHITE+" -----");
+    					player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page "+pageNum+"/"+(int)(Math.ceil((double)submitters.size()/3))+")"+ChatColor.WHITE+" -----");
     					for(int i = (submitters.size()-1)-((pageNum-1)*3); i >= ((((submitters.size()-3)-((pageNum-1)*3)) + Math.abs((submitters.size()-3)-((pageNum-1)*3)))/2); i--){
 		    				player.sendMessage(ChatColor.WHITE+" - "+ChatColor.AQUA+reviewers.get(i)+reviewStatus.get(i)+submitters.get(i)+"'s build on "+timestamps.get(i));
 		    			}
@@ -295,24 +302,24 @@ public class ApplicationListener implements Listener {
             	break;
             case COMMAND_REVIEW_BUILD:
             	if(args.length == 0){
-    				sender.sendMessage(ChatColor.RED+ "Usage: /reviewbuild [player name] [-i]");
+    				player.sendMessage(ChatColor.RED+ "Usage: /reviewbuild [player name] [-i]");
     				return true;
     			}
-    			String playerName = args[0];
-    			Player reviewer = (Player) sender;
+    			playerName = args[0];
+    			reviewer = (Player) player;
 				if(args.length == 2){
 					if(args[1].equalsIgnoreCase("i")){
-						if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){
-							sender.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now hidden from "+playerName);
+						if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){ //TODO: Fix these deprecated methods
+							player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now hidden from "+playerName);
 							Bukkit.getServer().getPlayer(playerName).hidePlayer(reviewer);
 						}
 					}
     			}
     			if(submittedBuilds.containsKey(playerName)){
     				reviewer.teleport(submittedBuilds.get(playerName));
-    				sender.sendMessage(ChatColor.DARK_AQUA+playerName+"'s Build");
+    				player.sendMessage(ChatColor.DARK_AQUA+playerName+"'s Build");
     			}else{
-    				sender.sendMessage(ChatColor.RED+ "Player does not exist.");
+    				player.sendMessage(ChatColor.RED+ "Player does not exist.");
     				return true;
     			}
     			
@@ -320,45 +327,43 @@ public class ApplicationListener implements Listener {
             
             case COMMAND_APPROVE_BUILD:
             	if(args.length == 0){
-    				sender.sendMessage(ChatColor.RED+ "Usage: /approvebuild [player name]");
+    				player.sendMessage(ChatColor.RED+ "Usage: /approvebuild [player name]");
     				return true;
     			}
-    			String playerName = args[0];
-    			Player reviewer = (Player) sender;
-    			Date reviewDate = new Date();
+    			playerName = args[0];
+    			reviewer = (Player) player;
+    			reviewDate = new Date();
     			if(submittedBuilds.containsKey(playerName)){
-    				sender.sendMessage(ChatColor.DARK_AQUA+playerName+"'s build was approved");
-    				reviewers.add(sender.getName());
+    				player.sendMessage(ChatColor.DARK_AQUA+playerName+"'s build was approved");
+    				reviewers.add(player.getName());
     				submitters.add(playerName);
     				timestamps.add(reviewDate.toString());
     				reviewStatus.add(" approved ");
     				submittedBuilds.remove(playerName);
     				submittedPlayerList.remove(playerName);
     				approvedBuilds.put(playerName, true);
-    				if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){
+    				if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){  //TODO: Fix these deprecated methods
     					Bukkit.getServer().getPlayer(playerName).sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
     					Bukkit.getServer().getPlayer(playerName).setGameMode(GameMode.CREATIVE);
     					Bukkit.getServer().getPlayer(playerName).showPlayer(reviewer);
-    					sender.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now visible to "+playerName);
+    					player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now visible to "+playerName);
     				}
     				return true;
     			}else{
-    				sender.sendMessage(ChatColor.RED+ "Player does not exist.");
+    				player.sendMessage(ChatColor.RED+ "Player does not exist.");
     				return true;
     			}
-    			
-    			break;
             case COMMAND_REJECT_BUILD:
             	if(args.length == 0){
-    				sender.sendMessage(ChatColor.RED+ "Usage: /rejectbuild [player name]");
+    				player.sendMessage(ChatColor.RED+ "Usage: /rejectbuild [player name]");
     				return true;
     			}
-    			String playerName = args[0];
-    			Player reviewer = (Player) sender;
-    			Date reviewDate = new Date();
+    			playerName = args[0];
+    			reviewer = (Player) player;
+    			reviewDate = new Date();
     			if(submittedBuilds.containsKey(playerName)){
-    				sender.sendMessage(ChatColor.DARK_AQUA+playerName+"'s build was denied.");
-    				reviewers.add(sender.getName());
+    				player.sendMessage(ChatColor.DARK_AQUA+playerName+"'s build was denied.");
+    				reviewers.add(player.getName());
     				submitters.add(playerName);
     				timestamps.add(reviewDate.toString());
     				reviewStatus.add(" rejected ");
@@ -368,15 +373,14 @@ public class ApplicationListener implements Listener {
     				if(Bukkit.getServer().getOfflinePlayer(playerName).isOnline()){
     					Bukkit.getServer().getPlayer(playerName).sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+rejectionMessage);
     					Bukkit.getServer().getPlayer(playerName).showPlayer(reviewer);
-    					sender.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now visible to "+playerName);
+    					player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now visible to "+playerName);
     				}
     				return true;
     			}else{
-    				sender.sendMessage(ChatColor.RED+ "Player does not exist.");
+    				player.sendMessage(ChatColor.RED+ "Player does not exist.");
     				return true;
     			}
-    			
-    			break;*/
+
             default:
                 return false;
         }
@@ -579,6 +583,13 @@ public class ApplicationListener implements Listener {
 		}
     }
     
+    private void loadSubmittedBuilds() {
+    	//TODO: Load Submitted Builds (Hashmap and Array)
+    }
+    
+    private void loadApprovedBuilds() {
+    	//TODO: Load Approved Builds (Hashmap)
+    }
     private void alertAcceptance(final Player applicant){
     	Utils.send_message(applicant, MESSAGE_ACCEPTED);
     	

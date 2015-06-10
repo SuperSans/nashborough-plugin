@@ -96,7 +96,7 @@ public class NashboroughPlugin extends JavaPlugin {
         if(sender instanceof Player) {
             Player player = (Player)sender;
             
-            if(applicationListener.handleCommand(player, command.getName())) {
+            if(applicationListener.handleCommand(player, command.getName(), args)) {
                 return true;
             }
         }
