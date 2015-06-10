@@ -21,10 +21,10 @@ import org.json.simple.JSONObject;
 public class NashboroughPlugin extends JavaPlugin {
     
     private ApplicationListener applicationListener;
-    private static final String APPLICATION_JSON_PATH = "plugins/ApplicationPlugin/applications.json";
-    private static final String SUBMITTED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/submitted_builds.json";
-    private static final String APPROVED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/approved_builds.json";
-    private static final String CITIES_JSON_PATH = "plugins/ApplicationPlugin/cities.json";
+    public static final String APPLICATION_JSON_PATH = "plugins/ApplicationPlugin/applications.json";
+    public static final String SUBMITTED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/submitted_builds.json";
+    public static final String APPROVED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/approved_builds.json";
+    public static final String CITIES_JSON_PATH = "plugins/ApplicationPlugin/cities.json";
     
     @Override 
     public void onEnable() {

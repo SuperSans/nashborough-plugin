@@ -33,8 +33,10 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import to.us.nashboroughmc.nashboroughplugin.NashboroughPlugin;
 import to.us.nashboroughmc.nashboroughplugin.Utils;
 import to.us.nashboroughmc.nashboroughplugin.models.Application;
+import to.us.nashboroughmc.nashboroughplugin.models.Build;
 
 /**
  *
@@ -73,10 +75,6 @@ public class ApplicationListener implements Listener {
     private static final String SOUTH_NASH_INFO   = "South Nashborough: An underdeveloped suburb with a farming community south of it.";
     private static final int[]  SOUTH_NASH_COORDS = {-65, 67, 429};
     
-    private static final String APPLICATION_JSON_PATH = "plugins/ApplicationPlugin/applications.json";
-    private static final String SUBMITTED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/submitted_builds.json";
-    private static final String APPROVED_BUILDS_JSON_PATH = "plugins/ApplicationPlugin/approved_builds.json";
-    
     private final HashMap<UUID, Application> applications;
     private HashMap<UUID, Application> pendingApplications;
     private HashMap<Player, UUID> reviewingPlayers = new HashMap<Player, UUID>();
@@ -84,13 +82,8 @@ public class ApplicationListener implements Listener {
     
     //IMPORTED FROM BUILD REVIEW PLUGIN
     public static ArrayList<String> submittedPlayerList = new ArrayList<String>();
-	public static HashMap<String, Location> submittedBuilds = new HashMap<String, Location>();
-	public static HashMap<String, Boolean> approvedBuilds = new HashMap<String, Boolean>();
-	
-	public static ArrayList<String> reviewers = new ArrayList<String>();
-	public static ArrayList<String> submitters = new ArrayList<String>();
-	public static ArrayList<String> timestamps = new ArrayList<String>();
-	public static ArrayList<String> reviewStatus = new ArrayList<String>();
+	public static HashMap<UUID, Build> submittedBuilds = new HashMap<UUID, Build>();
+	public static HashMap<UUID, Build> approvedBuilds = new HashMap<UUID, Build>();
 	
 	public static String approvalMessage = "Your build has been approved!";
 	public static String rejectionMessage = "Your build has not been approved at this time."
@@ -461,7 +454,7 @@ public class ApplicationListener implements Listener {
         }
         
         //Else, look for this players application
-        if(applications.containsKey(player.getUniqueId())){ //TODO: This is iterated through EVERY TIME SOMEONE CHATS. Should this be fixed?
+        if(applications.containsKey(player.getUniqueId())){
         	Application application = applications.get(player.getUniqueId());
             switch(application.getState()) {
                 case "started":
@@ -561,7 +554,7 @@ public class ApplicationListener implements Listener {
     	JSONObject jsonObject = null;
     	 
     	try {
-    		Object obj = parser.parse(new FileReader(APPLICATION_JSON_PATH));
+    		Object obj = parser.parse(new FileReader(NashboroughPlugin.APPLICATION_JSON_PATH));
     		jsonObject = (JSONObject) obj;
     	} catch (IOException|ParseException e) {
     		e.printStackTrace();
@@ -584,7 +577,23 @@ public class ApplicationListener implements Listener {
     }
     
     private void loadSubmittedBuilds() {
-    	//TODO: Load Submitted Builds (Hashmap and Array)
+    	JSONParser parser = new JSONParser();
+    	JSONObject jsonObject = null;
+    	 
+    	try {
+    		Object obj = parser.parse(new FileReader(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH));
+    		jsonObject = (JSONObject) obj;
+    	} catch (IOException|ParseException e) {
+    		e.printStackTrace();
+    	}
+    	Object[] keys = jsonObject.keySet().toArray();
+
+		for (Object playername : keys){
+			JSONObject build = (JSONObject) jsonObject.get(playername);
+			Location loc = new Location(Bukkit.getWorld("world"),(int)build.get("x"),(int)build.get("y"),(int)build.get("z"));
+			submittedBuilds.put((String) playername, loc);
+			submitters.add((String) playername);
+		}
     }
     
     private void loadApprovedBuilds() {
