@@ -9,6 +9,7 @@ import static org.bukkit.Bukkit.getServer;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -156,7 +157,11 @@ public class ApplicationListener implements Listener {
 				Application app = applications.get(player.getUniqueId());
 				app.setState("completed");
 				app.changeFileState();
-				player.setGameMode(GameMode.CREATIVE);
+				Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
+		        	  public void run() {
+		        		player.setGameMode(GameMode.CREATIVE);
+		        	  }
+		        	});
 			}
 			else if(submittedBuilds.get(player.getDisplayName()).getState().equals("rejected")){
 				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+rejectionMessage);
@@ -354,7 +359,11 @@ public class ApplicationListener implements Listener {
     				if(isOnline(playerName)){
     					Player online_player = getPlayer(playerName);
     					online_player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
-    					online_player.setGameMode(GameMode.CREATIVE); //TODO: Async task
+    					Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
+    			        	  public void run() {
+    			        		online_player.setGameMode(GameMode.CREATIVE);
+    			        	  }
+    			        	});
     					approved_build.setState("completed");
     					Application app = applications.get(online_player.getUniqueId());
     					app.setState("completed");
@@ -597,7 +606,7 @@ public class ApplicationListener implements Listener {
 		}
     }
     
-    private void loadSubmittedBuilds() { //TODO: Fix loading functions
+    private void loadSubmittedBuilds() {
     	JSONParser parser = new JSONParser();
     	JSONObject jsonObject = null;
     	 
@@ -610,15 +619,64 @@ public class ApplicationListener implements Listener {
     	Object[] keys = jsonObject.keySet().toArray();
 
 		for (Object playername : keys){
-			JSONObject build = (JSONObject) jsonObject.get(playername);
-			Location loc = new Location(Bukkit.getWorld("world"),(int)build.get("x"),(int)build.get("y"),(int)build.get("z"));
-			submittedBuilds.put((String) playername, loc);
-			submitters.add((String) playername);
+			JSONObject build_obj = (JSONObject) jsonObject.get(playername);
+			Build build = new Build((String)build_obj.get("state"));
+			Location loc = new Location(Bukkit.getWorld("world"),(int)build_obj.get("x"),(int)build_obj.get("y"),(int)build_obj.get("z"));
+			SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
+			Date date = new Date();
+			try {
+				date = formatter.parse((String)build_obj.get("timestamp"));
+			} catch (java.text.ParseException e) {
+				e.printStackTrace();
+			}
+			
+			build.setUUID((UUID)UUID.fromString((String)build_obj.get("UUID")));
+			build.setLocation(loc);
+			build.setReviewer((String)build_obj.get("reviewer"));
+			build.setTimestamp(date);
+			build.setUsername((String)build_obj.get("username"));
+			
+			submittedBuilds.put((String) playername, build);
+			if (build.getState().equals("submitted")){
+				submittedPlayerList.add((String) playername);
+			}
+			
 		}
     }
     
     private void loadApprovedBuilds() { 
-    	//TODO: Load Approved Builds (Hashmap)
+    	JSONParser parser = new JSONParser();
+    	JSONObject jsonObject = null;
+    	 
+    	try {
+    		Object obj = parser.parse(new FileReader(NashboroughPlugin.APPROVED_BUILDS_JSON_PATH));
+    		jsonObject = (JSONObject) obj;
+    	} catch (IOException|ParseException e) {
+    		e.printStackTrace();
+    	}
+    	Object[] keys = jsonObject.keySet().toArray();
+
+		for (Object playername : keys){
+			JSONObject build_obj = (JSONObject) jsonObject.get(playername);
+			Build build = new Build((String)build_obj.get("state"));
+			Location loc = new Location(Bukkit.getWorld("world"),(int)build_obj.get("x"),(int)build_obj.get("y"),(int)build_obj.get("z"));
+			SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
+			Date date = new Date();
+			try {
+				date = formatter.parse((String)build_obj.get("timestamp"));
+			} catch (java.text.ParseException e) {
+				e.printStackTrace();
+			}
+			
+			build.setUUID((UUID)UUID.fromString((String)build_obj.get("UUID")));
+			build.setLocation(loc);
+			build.setReviewer((String)build_obj.get("reviewer"));
+			build.setTimestamp(date);
+			build.setUsername((String)build_obj.get("username"));
+			
+			approvedBuilds.put((String) playername, build);
+			
+		}
     }
     private void alertAcceptance(final Player applicant){
     	Utils.send_message(applicant, MESSAGE_ACCEPTED);
