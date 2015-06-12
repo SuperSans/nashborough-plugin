@@ -150,18 +150,7 @@ public class ApplicationListener implements Listener {
 		}
 		if(approvedBuilds.containsKey(player.getDisplayName())){
 			if(approvedBuilds.containsKey(player.getDisplayName())){
-				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
-				approvedBuilds.get(player.getDisplayName()).setState("completed");
-				approvedBuilds.get(player.getDisplayName()).changeFileState();
-				approvedBuilds.remove(player.getDisplayName());
-				Application app = applications.get(player.getUniqueId());
-				app.setState("completed");
-				app.changeFileState();
-				Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
-		        	  public void run() {
-		        		player.setGameMode(GameMode.CREATIVE);
-		        	  }
-		        	});
+				updateToCreative(player);
 			}
 			else if(submittedBuilds.get(player.getDisplayName()).getState().equals("rejected")){
 				player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+rejectionMessage);
@@ -293,7 +282,7 @@ public class ApplicationListener implements Listener {
     			break;
     			
             case COMMAND_REVIEW_LOG:
-            	if(submittedPlayerList.isEmpty()){
+            	if(submittedPlayerList.isEmpty()){ //TODO: Change from submitted Players to something else
     				player.sendMessage(ChatColor.WHITE+"----- "+ChatColor.DARK_AQUA+"Builds Reviewed (page 1/"+(int)(Math.ceil((double)submittedPlayerList.size()/3))+")"+ChatColor.WHITE+" -----");
     				player.sendMessage(ChatColor.AQUA+" No builds");
     			}else{
@@ -358,17 +347,7 @@ public class ApplicationListener implements Listener {
     				approvedBuilds.put(playerName, approved_build);
     				if(isOnline(playerName)){
     					Player online_player = getPlayer(playerName);
-    					online_player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
-    					Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
-    			        	  public void run() {
-    			        		online_player.setGameMode(GameMode.CREATIVE);
-    			        	  }
-    			        	});
-    					approved_build.setState("completed");
-    					Application app = applications.get(online_player.getUniqueId());
-    					app.setState("completed");
-    					app.changeFileState();
-    					approved_build.changeFileState();
+    					updateToCreative(online_player);
     					online_player.showPlayer(reviewer);
     					player.sendMessage(ChatColor.LIGHT_PURPLE+" "+ChatColor.ITALIC+"You are now visible to "+playerName);
     				}
@@ -710,6 +689,21 @@ public class ApplicationListener implements Listener {
     	Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
         	  public void run() {
         		applicant.setGameMode(GameMode.SURVIVAL);
+        	  }
+        	});
+    }
+    
+    private void updateToCreative(final Player player){
+    	player.sendMessage(ChatColor.DARK_AQUA+"[MESSAGE FROM THE MODS] "+ChatColor.AQUA+approvalMessage);
+		approvedBuilds.get(player.getDisplayName()).setState("completed");
+		approvedBuilds.get(player.getDisplayName()).changeFileState();
+		approvedBuilds.remove(player.getDisplayName());
+		Application app = applications.get(player.getUniqueId());
+		app.setState("completed");
+		app.changeFileState();
+		Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
+        	  public void run() {
+        		player.setGameMode(GameMode.CREATIVE);
         	  }
         	});
     }

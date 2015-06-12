@@ -137,7 +137,7 @@ public class Build {
 					e.printStackTrace();
 				};
 				JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
-				playerobj.put("state", state);
+				playerobj.put("state", getState());
 				if (getState().equals("approved")){
 					playerobj.put("timestamp", getTimestamp().toString());
 					playerobj.put("reviewer", getReviewer());
