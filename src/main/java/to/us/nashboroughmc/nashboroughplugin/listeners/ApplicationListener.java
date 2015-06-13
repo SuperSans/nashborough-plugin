@@ -25,6 +25,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -33,6 +34,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -62,7 +64,7 @@ public class ApplicationListener implements Listener {
     private static final String MESSAGE_ACCEPTED  = "Congratulations! Your application accepted.";
     private static final String MESSAGE_DENIED    = "Sorry, your application was denied.";
     private static final String MESSAGE_SELECTING = "Now that your preliminary application has been accepted, you must choose where to build your home.";
-    private static final String MESSAGE_BUILDING  = "You're in the building stage of your membership. When your survival build is completed, use the /submitbuild command and a moderator will review your build.";
+    private static final String MESSAGE_BUILDING  = "You're in the building stage of your membership. We have given you some basic supplies to assist you. When your survival build is completed, use the /submitbuild command and a moderator will review your build.";
     
     private static final String WEST_AUTUMNPORT_INFO   = "Autumnport: West of the coastal town, Autumnport.";
     private static final int[]  WEST_AUTUMNPORT_COORDS = {106, 69, -498};
@@ -78,6 +80,22 @@ public class ApplicationListener implements Listener {
     
     private static final String SOUTH_NASH_INFO   = "South Nashborough: An underdeveloped suburb with a farming community south of it.";
     private static final int[]  SOUTH_NASH_COORDS = {-65, 67, 429};
+    
+    private static final ItemStack[] items = {
+    	new ItemStack(Material.BREAD, 64), 
+    	new ItemStack(Material.BED, 3), 
+    	new ItemStack(Material.IRON_AXE, 1), 
+    	new ItemStack(Material.IRON_SPADE, 1),
+    	new ItemStack(Material.IRON_PICKAXE, 1),
+    	new ItemStack(Material.IRON_SPADE, 1),
+    	new ItemStack(Material.WOOL, 16),
+    	new ItemStack(Material.LOG, 256),
+    	new ItemStack(Material.BRICK, 128),
+    	new ItemStack(Material.SAND, 64),
+    	new ItemStack(Material.COAL, 64),
+    	new ItemStack(Material.TORCH, 32),
+    };
+    
     
     private final HashMap<UUID, Application> applications;
     private HashMap<UUID, Application> pendingApplications;
@@ -712,6 +730,7 @@ public class ApplicationListener implements Listener {
     	Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
         	  public void run() {
         		applicant.setGameMode(GameMode.SURVIVAL);
+        		applicant.getInventory().addItem(items);
         	  }
         	});
     }
