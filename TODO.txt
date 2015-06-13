@@ -1,8 +1,3 @@
 TODO:
--Fix random country being printed
--Fix review log, show only approved builds
--Fix null pointer at build write when going from submitted to approved, no problems when rejected.
-	+Specify what file the build is being removed from
--Can't review build if the player is offline\
--Internal error when review list reloaded
-+Add states for the /apply command
+
++Give kits
