@@ -61,7 +61,7 @@ public class ApplicationListener implements Listener {
     
     
     private static final String MESSAGE_PENDING   = "Looks like you have an application pending. We will get to it as soon as possible.";
-    private static final String MESSAGE_ACCEPTED  = "Congratulations! Your application accepted.";
+    private static final String MESSAGE_ACCEPTED  = "Congratulations! Your application has been accepted.";
     private static final String MESSAGE_DENIED    = "Sorry, your application was denied.";
     private static final String MESSAGE_SELECTING = "Now that your preliminary application has been accepted, you must choose where to build your home.";
     private static final String MESSAGE_BUILDING  = "You're in the building stage of your membership. We have given you some basic supplies to assist you. When your survival build is completed, use the /submitbuild command and a moderator will review your build.";
@@ -161,7 +161,7 @@ public class ApplicationListener implements Listener {
         
         if(player.isOp()) {
             if(pendingApplications.size() > 0) {
-                Utils.send_message(player, "Applications awaiting review: " + applications.size());
+                Utils.send_message(player, "Applications awaiting review: " + pendingApplications.size());
                 Utils.send_message(player, "Use \"/reviewapps\" to review them");
             }
         }
@@ -696,6 +696,7 @@ public class ApplicationListener implements Listener {
 			build.setReviewer((String)build_obj.get("reviewer"));
 			build.setTimestamp(date);
 			build.setUsername((String)build_obj.get("username"));
+			build.setAlerted((boolean)build_obj.get("alerted"));
 			
 			reviewedBuilds.put((String) build_obj.get("username"), build);
 			
