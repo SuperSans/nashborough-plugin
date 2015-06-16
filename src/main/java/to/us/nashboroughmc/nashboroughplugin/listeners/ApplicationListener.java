@@ -160,6 +160,7 @@ public class ApplicationListener implements Listener {
         }
         
         if(player.isOp()) {
+        	pendingApplications = getPendingApplications();
             if(pendingApplications.size() > 0) {
                 Utils.send_message(player, "Applications awaiting review: " + pendingApplications.size());
                 Utils.send_message(player, "Use \"/reviewapps\" to review them");
