@@ -468,13 +468,11 @@ public class ApplicationListener implements Listener {
                     case "deny":
                         application.setState("denied");
                         application.changeFileState();
-                        if(applicant != null && applicant.isOnline()) {
-                            Utils.send_message(applicant, MESSAGE_DENIED);
-                        }
                         BanList banlist = Bukkit.getBanList(BanList.Type.NAME);
-                        banlist.addBan(applicant.getDisplayName(), "Your application has been rejected. We wish you luck in your server search!", null, "Application Plugin");
+                        banlist.addBan(application.getUsername(), "Your application has been rejected. We wish you luck in your server search!", null, "Application Plugin");
                         final Player p = applicant;
-                        if (applicant.isOnline()){
+                        if (applicant != null && applicant.isOnline()){
+                        	Utils.send_message(applicant, MESSAGE_DENIED);
 	                        Bukkit.getScheduler().runTask(getServer().getPluginManager().getPlugin("NashboroughPlugin"), new Runnable() {
 	                        	  public void run() {
 	                        		  p.kickPlayer("Your application has been rejected. We wish you luck in your server search!");
