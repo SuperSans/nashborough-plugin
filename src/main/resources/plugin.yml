@@ -1,6 +1,7 @@
 name: NashboroughPlugin
 main: to.us.nashboroughmc.nashboroughplugin.NashboroughPlugin
-version: SNAPSHOT-02
+version: 1.0
+api-version: 1.16
 
 commands:
   apply:

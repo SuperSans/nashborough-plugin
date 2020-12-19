@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package to.us.nashboroughmc.nashboroughplugin.models;
 
 import java.io.FileReader;
@@ -13,9 +8,9 @@ import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
 
 import to.us.nashboroughmc.nashboroughplugin.NashboroughPlugin;
 
@@ -98,29 +93,29 @@ public class Build {
 	
 	@SuppressWarnings("unchecked")
 	public void submit() {
-    	JSONParser parser = new JSONParser();
-    	JSONObject jsonObject = null;
+    	JsonParser parser = new JsonParser();
+    	JsonObject jsonObject = null;
     	try {
-			jsonObject = (JSONObject) parser.parse(new FileReader(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH));
-		} catch (IOException | ParseException e) {
+			jsonObject = (JsonObject) parser.parse(new FileReader(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH));
+		} catch (IOException | JsonParseException e) {
 			e.printStackTrace();
 		};
-    	JSONObject obj = new JSONObject();
-    	obj.put("UUID", getUUID().toString());
-    	obj.put("username", getUsername());
-    	obj.put("state",getState());
-    	obj.put("x", (int)getLocation().getX());
-    	obj.put("y", (int)getLocation().getY());
-    	obj.put("z", (int)getLocation().getZ());
-    	obj.put("timestamp", getTimestamp().toString());
-    	obj.put("reviewer", getReviewer());
-    	obj.put("alerted", isAlerted());
+    	JsonObject obj = new JsonObject();
+    	obj.addProperty("UUID", getUUID().toString());
+    	obj.addProperty("username", getUsername());
+    	obj.addProperty("state",getState());
+    	obj.addProperty("x", (int)getLocation().getX());
+    	obj.addProperty("y", (int)getLocation().getY());
+    	obj.addProperty("z", (int)getLocation().getZ());
+    	obj.addProperty("timestamp", getTimestamp().toString());
+    	obj.addProperty("reviewer", getReviewer());
+    	obj.addProperty("alerted", isAlerted());
     	
-    	jsonObject.put(getUUID().toString(),obj);
+    	jsonObject.add(getUUID().toString(), obj);
     	FileWriter file;
 		try {
 			file = new FileWriter(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH);
-			file.write(jsonObject.toJSONString());
+			file.write(jsonObject.toString());
     		file.flush();
     		file.close();
 		} catch (IOException e1) {
@@ -135,40 +130,40 @@ public class Build {
 			@SuppressWarnings("unchecked")
 			@Override
 			public void run() {
-				JSONParser parser = new JSONParser();
-		    	JSONObject jsonObject = null;
-		    	JSONObject jsonObjectW = null;
+				JsonParser parser = new JsonParser();
+		    	JsonObject jsonObject = null;
+		    	JsonObject jsonObjectW = null;
 		    	try {
 		    		if (fileloc.equals("submitted")){
-		    			jsonObject = (JSONObject) parser.parse(new FileReader(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH));
-		    			jsonObjectW = (JSONObject) parser.parse(new FileReader(NashboroughPlugin.APPROVED_BUILDS_JSON_PATH));
+		    			jsonObject = (JsonObject) parser.parse(new FileReader(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH));
+		    			jsonObjectW = (JsonObject) parser.parse(new FileReader(NashboroughPlugin.APPROVED_BUILDS_JSON_PATH));
 		    		}
 		    		else if (fileloc.equals("reviewed")){
-		    			jsonObject = (JSONObject) parser.parse(new FileReader(NashboroughPlugin.APPROVED_BUILDS_JSON_PATH));
+		    			jsonObject = (JsonObject) parser.parse(new FileReader(NashboroughPlugin.APPROVED_BUILDS_JSON_PATH));
 		    		}
 		    		
-				} catch (IOException | ParseException e) {
+				} catch (IOException | JsonParseException e) {
 					e.printStackTrace();
 				};
-				JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
-				playerobj.put("state", getState());
+				JsonObject playerobj = (JsonObject) jsonObject.get(StateUUID);
+				playerobj.addProperty("state", getState());
 				if (getState().equals("approved") || getState().equals("rejected")){
-					playerobj.put("timestamp", getTimestamp().toString());
-					playerobj.put("reviewer", getReviewer());
-					playerobj.put("alerted", isAlerted());
+					playerobj.addProperty("timestamp", getTimestamp().toString());
+					playerobj.addProperty("reviewer", getReviewer());
+					playerobj.addProperty("alerted", isAlerted());
 				}
 				if (fileloc.equals("submitted")){
-					jsonObjectW.put(StateUUID, playerobj);
+					jsonObjectW.add(StateUUID, playerobj);
 				} else {
-					jsonObject.put(StateUUID, playerobj);
+					jsonObject.add(StateUUID, playerobj);
 				}
 				FileWriter file;
 				try {					
 					file = new FileWriter(NashboroughPlugin.APPROVED_BUILDS_JSON_PATH);
 					if (fileloc.equals("submitted")){
-						file.write(jsonObjectW.toJSONString());
+						file.write(jsonObjectW.toString());
 					} else {
-						file.write(jsonObject.toJSONString());
+						file.write(jsonObject.toString());
 					}
 		    		file.flush();
 		    		file.close();
@@ -179,7 +174,7 @@ public class Build {
 					jsonObject.remove(StateUUID);
 					try {					
 						file = new FileWriter(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH);
-						file.write(jsonObject.toJSONString());
+						file.write(jsonObject.toString());
 			    		file.flush();
 			    		file.close();
 					} catch (IOException e1) {

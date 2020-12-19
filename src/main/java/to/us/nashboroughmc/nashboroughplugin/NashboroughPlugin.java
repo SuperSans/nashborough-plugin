@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package to.us.nashboroughmc.nashboroughplugin;
 
 import java.io.File;
@@ -16,7 +11,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.json.simple.JSONObject;
+import com.google.gson.JsonObject;
+
 
 public class NashboroughPlugin extends JavaPlugin {
     
@@ -42,10 +38,10 @@ public class NashboroughPlugin extends JavaPlugin {
         File cities = new File(CITIES_JSON_PATH);
         
         if(!applications.exists()) { //If applications.json does not exist
-        	JSONObject jsonObject = new JSONObject();
+        	JsonObject jsonObject = new JsonObject();
 			try {
 				FileWriter file = new FileWriter(APPLICATION_JSON_PATH);
-				file.write(jsonObject.toJSONString());
+				file.write(jsonObject.toString());
 	    		file.flush();
 	    		file.close();
 			} catch (IOException e1) {
@@ -53,10 +49,10 @@ public class NashboroughPlugin extends JavaPlugin {
 			}
         }
         if(!submitted_builds.exists()) {
-        	JSONObject jsonObject = new JSONObject();
+        	JsonObject jsonObject = new JsonObject();
 			try {
 				FileWriter file = new FileWriter(SUBMITTED_BUILDS_JSON_PATH);
-				file.write(jsonObject.toJSONString());
+				file.write(jsonObject.toString());
 	    		file.flush();
 	    		file.close();
 			} catch (IOException e1) {
@@ -64,10 +60,10 @@ public class NashboroughPlugin extends JavaPlugin {
 			}
         }
         if(!approved_builds.exists()) {
-        	JSONObject jsonObject = new JSONObject();
+        	JsonObject jsonObject = new JsonObject();
 			try {
 				FileWriter file = new FileWriter(APPROVED_BUILDS_JSON_PATH);
-				file.write(jsonObject.toJSONString());
+				file.write(jsonObject.toString());
 	    		file.flush();
 	    		file.close();
 			} catch (IOException e1) {
@@ -75,10 +71,10 @@ public class NashboroughPlugin extends JavaPlugin {
 			}
         }
         if(!approved_builds.exists()) {
-        	JSONObject jsonObject = new JSONObject();
+        	JsonObject jsonObject = new JsonObject();
 			try {
 				FileWriter file = new FileWriter(CITIES_JSON_PATH);
-				file.write(jsonObject.toJSONString());
+				file.write(jsonObject.toString());
 	    		file.flush();
 	    		file.close();
 			} catch (IOException e1) {

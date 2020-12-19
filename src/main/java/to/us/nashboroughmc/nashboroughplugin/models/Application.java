@@ -11,9 +11,9 @@ import java.io.IOException;
 import java.util.UUID;
 
 import org.bukkit.entity.Player;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
 
 import to.us.nashboroughmc.nashboroughplugin.NashboroughPlugin;
 
@@ -99,26 +99,26 @@ public class Application {
     
     @SuppressWarnings("unchecked")
 	public void submit() {
-    	JSONParser parser = new JSONParser();
-    	JSONObject jsonObject = null;
+    	JsonParser parser = new JsonParser();
+    	JsonObject jsonObject = null;
     	try {
-			jsonObject = (JSONObject) parser.parse(new FileReader(NashboroughPlugin.APPLICATION_JSON_PATH));
-		} catch (IOException | ParseException e) {
+			jsonObject = (JsonObject) parser.parse(new FileReader(NashboroughPlugin.APPLICATION_JSON_PATH));
+		} catch (IOException | JsonParseException e) {
 			e.printStackTrace();
 		};
-    	JSONObject obj = new JSONObject();
-    	obj.put("UUID", getUUID().toString());
-    	obj.put("username", getUsername());
-    	obj.put("country", getCountry());
-    	obj.put("age", getAge());
-    	obj.put("experience", getExperience());
-    	obj.put("album", getAlbum());
-    	obj.put("state",getState());
-    	jsonObject.put(getUUID().toString(),obj);
+    	JsonObject obj = new JsonObject();
+    	obj.addProperty("UUID", getUUID().toString());
+    	obj.addProperty("username", getUsername());
+    	obj.addProperty("country", getCountry());
+    	obj.addProperty("age", getAge());
+    	obj.addProperty("experience", getExperience());
+    	obj.addProperty("album", getAlbum());
+    	obj.addProperty("state",getState());
+    	jsonObject.add(getUUID().toString(),obj);
     	FileWriter file;
 		try {
 			file = new FileWriter(NashboroughPlugin.APPLICATION_JSON_PATH);
-			file.write(jsonObject.toJSONString());
+			file.write(jsonObject.toString());
     		file.flush();
     		file.close();
 		} catch (IOException e1) {
@@ -133,20 +133,20 @@ public class Application {
 			@SuppressWarnings("unchecked")
 			@Override
 			public void run() {
-				JSONParser parser = new JSONParser();
-		    	JSONObject jsonObject = null;
+				JsonParser parser = new JsonParser();
+		    	JsonObject jsonObject = null;
 		    	try {
-					jsonObject = (JSONObject) parser.parse(new FileReader(NashboroughPlugin.APPLICATION_JSON_PATH));
-				} catch (IOException | ParseException e) {
+					jsonObject = (JsonObject) parser.parse(new FileReader(NashboroughPlugin.APPLICATION_JSON_PATH));
+				} catch (IOException | JsonParseException e) {
 					e.printStackTrace();
 				};
-				JSONObject playerobj = (JSONObject) jsonObject.get(StateUUID);
-				playerobj.put("state", state);
-				jsonObject.put(StateUUID, playerobj);
+				JsonObject playerobj = (JsonObject) jsonObject.get(StateUUID);
+				playerobj.addProperty("state", state);
+				jsonObject.add(StateUUID, playerobj);
 				FileWriter file;
 				try {
 					file = new FileWriter(NashboroughPlugin.APPLICATION_JSON_PATH);
-					file.write(jsonObject.toJSONString());
+					file.write(jsonObject.toString());
 		    		file.flush();
 		    		file.close();
 				} catch (IOException e1) {

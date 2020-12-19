@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package to.us.nashboroughmc.nashboroughplugin.listeners;
 
 import static org.bukkit.Bukkit.getServer;
@@ -19,6 +14,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
 import org.apache.commons.lang.ArrayUtils;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
@@ -35,9 +34,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import to.us.nashboroughmc.nashboroughplugin.NashboroughPlugin;
 import to.us.nashboroughmc.nashboroughplugin.Utils;
@@ -83,13 +79,12 @@ public class ApplicationListener implements Listener {
     
     private static final ItemStack[] items = {
     	new ItemStack(Material.BREAD, 64), 
-    	new ItemStack(Material.BED, 3), 
-    	new ItemStack(Material.IRON_AXE, 1), 
-    	new ItemStack(Material.IRON_SPADE, 1),
+    	new ItemStack(Material.RED_BED, 3),
+    	new ItemStack(Material.IRON_AXE, 1),
     	new ItemStack(Material.IRON_PICKAXE, 1),
-    	new ItemStack(Material.IRON_SPADE, 1),
-    	new ItemStack(Material.WOOL, 16),
-    	new ItemStack(Material.LOG, 256),
+    	new ItemStack(Material.IRON_SHOVEL, 1),
+    	new ItemStack(Material.WHITE_WOOL, 16),
+    	new ItemStack(Material.OAK_LOG, 256),
     	new ItemStack(Material.BRICK, 128),
     	new ItemStack(Material.SAND, 64),
     	new ItemStack(Material.COAL, 64),
@@ -284,12 +279,12 @@ public class ApplicationListener implements Listener {
     			build.submit();
     			submittedBuilds.put(player.getDisplayName(), build);
     			player.sendMessage(ChatColor.AQUA+"Your build has been submitted for approval");
-    			for(int i = 0; i < Bukkit.getServer().getOnlinePlayers().length; i++){
-    				if(Bukkit.getServer().getOnlinePlayers()[i].isOp()){
-    					Bukkit.getServer().getOnlinePlayers()[i].sendMessage(ChatColor.DARK_AQUA+"[MOD MESSAGE] "
-    							+ChatColor.AQUA+"New builds submitted for approval. Use /reviewlist");
-    				}
-    			}
+    			for (Player onlinePlayer : Bukkit.getServer().getOnlinePlayers()) {
+					if (onlinePlayer.isOp()){
+						onlinePlayer.sendMessage(ChatColor.DARK_AQUA+"[MOD MESSAGE] "
+								+ChatColor.AQUA+"New builds submitted for approval. Use /reviewlist");
+					}
+				}
     			
     			break;
             case COMMAND_REVIEW_LIST:
@@ -602,102 +597,110 @@ public class ApplicationListener implements Listener {
     }
     
     private void loadSavedApplications() {
-    	JSONParser parser = new JSONParser();
-    	JSONObject jsonObject = null;
+    	JsonParser parser = new JsonParser();
+    	JsonObject jsonObject = null;
     	 
     	try {
     		Object obj = parser.parse(new FileReader(NashboroughPlugin.APPLICATION_JSON_PATH));
-    		jsonObject = (JSONObject) obj;
-    	} catch (IOException|ParseException e) {
+    		jsonObject = (JsonObject) obj;
+    	} catch (IOException|JsonParseException e) {
     		e.printStackTrace();
     	}
-    	Object[] keys = jsonObject.keySet().toArray();
 
-		for (Object UUID : keys){
-			JSONObject player = (JSONObject) jsonObject.get(UUID);
-			Application app = new Application((String)player.get("state"));
-			app.setAge((String) player.get("age"));
-			app.setAlbum((String)player.get("album"));
-			app.setCountry((String)player.get("country"));
-			app.setExperience((String)player.get("experience"));
-			app.setUsername((String)player.get("username"));
-			String string = (String) player.get("UUID");
+		for (Map.Entry<String, JsonElement> entry: jsonObject.entrySet()) {
+			String id = entry.getKey();
+			JsonObject player = jsonObject.getAsJsonObject(id);
+			Application app = new Application(player.get("state").getAsString());
+			app.setAge(player.get("age").getAsString());
+			app.setAlbum(player.get("album").getAsString());
+			app.setCountry(player.get("country").getAsString());
+			app.setExperience(player.get("experience").getAsString());
+			app.setUsername(player.get("username").getAsString());
+			String string = player.get("UUID").getAsString();
 			UUID uuid = java.util.UUID.fromString(string);
 			app.setUUID(uuid);
-			applications.put(uuid,app);
+			applications.put(uuid, app);
 		}
     }
     
     private void loadSubmittedBuilds() {
-    	JSONParser parser = new JSONParser();
-    	JSONObject jsonObject = null;
+    	JsonParser parser = new JsonParser();
+    	JsonObject jsonObject = null;
     	 
     	try {
     		Object obj = parser.parse(new FileReader(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH));
-    		jsonObject = (JSONObject) obj;
-    	} catch (IOException|ParseException e) {
+    		jsonObject = (JsonObject) obj;
+    	} catch (IOException|JsonParseException e) {
     		e.printStackTrace();
     	}
-    	Object[] keys = jsonObject.keySet().toArray();
 
-		for (Object uuid : keys){
-			JSONObject build_obj = (JSONObject) jsonObject.get(uuid);
-			Build build = new Build((String)build_obj.get("state"));
-			Location loc = new Location(Bukkit.getWorld("world"),((Long)build_obj.get("x")).intValue(),((Long)build_obj.get("y")).intValue(),((Long)build_obj.get("z")).intValue());
+		for (Map.Entry<String, JsonElement> entry: jsonObject.entrySet()) {
+			String uuid = entry.getKey();
+			JsonObject build_obj = (JsonObject) jsonObject.get(uuid);
+			Build build = new Build(build_obj.get("state").getAsString());
+			Location loc = new Location(
+					Bukkit.getWorld("world"),
+					(build_obj.get("x").getAsLong()),
+					(build_obj.get("y").getAsLong()),
+					(build_obj.get("z").getAsLong()));
 			SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 			Date date = new Date();
 			try {
-				date = formatter.parse((String)build_obj.get("timestamp"));
+				date = formatter.parse(build_obj.get("timestamp").getAsString());
 			} catch (java.text.ParseException e) {
 				e.printStackTrace();
 			}
 			
-			build.setUUID((UUID)UUID.fromString((String)build_obj.get("UUID")));
+			build.setUUID(UUID.fromString(build_obj.get("UUID").getAsString()));
 			build.setLocation(loc);
-			build.setReviewer((String)build_obj.get("reviewer"));
+			build.setReviewer(build_obj.get("reviewer").getAsString());
 			build.setTimestamp(date);
-			build.setUsername((String)build_obj.get("username"));
+			build.setUsername(build_obj.get("username").getAsString());
 			
-			submittedBuilds.put((String) (String)build_obj.get("username"), build);
+			submittedBuilds.put(build_obj.get("username").getAsString(), build);
 			if (build.getState().equals("submitted")){
-				submittedPlayerList.add((String) (String)build_obj.get("username"));
+				submittedPlayerList.add(build_obj.get("username").getAsString());
 			}
 			
 		}
     }
     
     private void loadApprovedBuilds() { 
-    	JSONParser parser = new JSONParser();
-    	JSONObject jsonObject = null;
+    	JsonParser parser = new JsonParser();
+    	JsonObject jsonObject = null;
     	 
     	try {
     		Object obj = parser.parse(new FileReader(NashboroughPlugin.APPROVED_BUILDS_JSON_PATH));
-    		jsonObject = (JSONObject) obj;
-    	} catch (IOException|ParseException e) {
+    		jsonObject = (JsonObject) obj;
+    	} catch (IOException| JsonParseException e) {
     		e.printStackTrace();
     	}
-    	Object[] keys = jsonObject.keySet().toArray();
 
-		for (Object uuid : keys){
-			JSONObject build_obj = (JSONObject) jsonObject.get(uuid);
-			Build build = new Build((String)build_obj.get("state"));
-			Location loc = new Location(Bukkit.getWorld("world"),((Long)build_obj.get("x")).intValue(),((Long)build_obj.get("y")).intValue(),((Long)build_obj.get("z")).intValue());
+		for (Map.Entry<String, JsonElement> entry: jsonObject.entrySet()) {
+			String uuid = entry.getKey();
+			JsonObject build_obj = (JsonObject) jsonObject.get(uuid);
+			Build build = new Build(build_obj.get("state").getAsString());
+			Location loc = new Location(
+					Bukkit.getWorld("world"),
+					(build_obj.get("x").getAsLong()),
+					(build_obj.get("y").getAsLong()),
+					(build_obj.get("z").getAsLong()));
 			SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 			Date date = new Date();
 			try {
-				date = formatter.parse((String)build_obj.get("timestamp"));
+				date = formatter.parse(build_obj.get("timestamp").getAsString());
 			} catch (java.text.ParseException e) {
 				e.printStackTrace();
 			}
 			
-			build.setUUID((UUID)UUID.fromString((String)build_obj.get("UUID")));
+			build.setUUID(UUID.fromString(build_obj.get("UUID").getAsString()));
 			build.setLocation(loc);
-			build.setReviewer((String)build_obj.get("reviewer"));
+			build.setReviewer(build_obj.get("reviewer").getAsString());
 			build.setTimestamp(date);
-			build.setUsername((String)build_obj.get("username"));
-			build.setAlerted((boolean)build_obj.get("alerted"));
+			build.setUsername(build_obj.get("username").getAsString());
+			build.setAlerted(build_obj.get("alerted").getAsBoolean());
 			
-			reviewedBuilds.put((String) build_obj.get("username"), build);
+			reviewedBuilds.put(build_obj.get("username").getAsString(), build);
 			
 		}
     }
