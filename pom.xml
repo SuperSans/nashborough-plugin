@@ -10,6 +10,10 @@
             <id>spigot-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
    </repositories>
     <dependencies>
         <dependency>
@@ -17,6 +21,11 @@
             <artifactId>spigot-api</artifactId>
             <version>1.16.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.alex9849</groupId>
+            <artifactId>advanced-region-market</artifactId>
+            <version>3.2.7</version>
         </dependency>
     </dependencies>
     <properties>

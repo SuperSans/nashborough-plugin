@@ -122,6 +122,26 @@ public class Build {
 			e1.printStackTrace();
 		}
     }
+
+    public void retract() {
+		JsonParser parser = new JsonParser();
+		JsonObject jsonObject = null;
+		try {
+			jsonObject = (JsonObject) parser.parse(new FileReader(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH));
+		} catch (IOException | JsonParseException e) {
+			e.printStackTrace();
+		};
+		jsonObject.remove(getUUID().toString());
+		FileWriter file;
+		try {
+			file = new FileWriter(NashboroughPlugin.SUBMITTED_BUILDS_JSON_PATH);
+			file.write(jsonObject.toString());
+			file.flush();
+			file.close();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	}
 	
 	public void changeFileState(final String fileloc){
     	final String StateUUID = getUUID().toString();

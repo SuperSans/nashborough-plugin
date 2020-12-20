@@ -4,14 +4,11 @@ version: 1.0
 api-version: 1.16
 
 commands:
-  apply:
-    description: sends in an application to become an official Nashbro
-    usage: /apply
-
-  reviewapps:
-    description: review pending applications and approve or deny them
-    usage: /reviewapps
-    permission: op
+  startbuild:
+    description: Starts the application build flow.
+    usage: /startbuild
+    permission: MCPlugin.startbuild
+    permission-message: You do not have permission
   submitbuild:
     description: Submits build for review.
     usage: /submitbuild

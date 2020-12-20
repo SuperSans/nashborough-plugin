@@ -25,10 +25,7 @@ public class Application {
     private String state;
     private UUID   uuid;
     private String username;
-    private String age;
-    private String country;
-    private String experience;
-    private String album;
+    private String regionId;
     
     public Application(String string) {
         this.state = string;
@@ -37,8 +34,6 @@ public class Application {
     public Application(Player player) {
         this.uuid     = player.getUniqueId();
         this.username = player.getDisplayName();
-        
-        this.state = "started";
     }
 
     public String getState() {
@@ -65,39 +60,19 @@ public class Application {
         this.username = username;
     }
 
-    public String getAge() {
-        return age;
-    }
+	public String getRegionId() {
+		return regionId;
+	}
 
-    public void setAge(String age) {
-        this.age = age;
-    }
+	public void setRegionId(String regionId) {
+		this.regionId = regionId;
+	}
 
-    public String getCountry() {
-        return country;
-    }
+	public boolean isComplete() {
+    	return state.equals("completed") || state.equals("approved");
+	}
 
-    public void setCountry(String country) {
-        this.country = country;
-    }
-
-    public String getExperience() {
-        return experience;
-    }
-
-    public void setExperience(String experience) {
-        this.experience = experience;
-    }
-
-    public String getAlbum() {
-        return album;
-    }
-
-    public void setAlbum(String album) {
-        this.album = album;
-    }
-    
-    @SuppressWarnings("unchecked")
+	@SuppressWarnings("unchecked")
 	public void submit() {
     	JsonParser parser = new JsonParser();
     	JsonObject jsonObject = null;
@@ -109,10 +84,6 @@ public class Application {
     	JsonObject obj = new JsonObject();
     	obj.addProperty("UUID", getUUID().toString());
     	obj.addProperty("username", getUsername());
-    	obj.addProperty("country", getCountry());
-    	obj.addProperty("age", getAge());
-    	obj.addProperty("experience", getExperience());
-    	obj.addProperty("album", getAlbum());
     	obj.addProperty("state",getState());
     	jsonObject.add(getUUID().toString(),obj);
     	FileWriter file;
@@ -140,9 +111,10 @@ public class Application {
 				} catch (IOException | JsonParseException e) {
 					e.printStackTrace();
 				};
-				JsonObject playerobj = (JsonObject) jsonObject.get(StateUUID);
+				JsonObject playerobj = (JsonObject) jsonObject.get(getUUID().toString());
 				playerobj.addProperty("state", state);
-				jsonObject.add(StateUUID, playerobj);
+				playerobj.addProperty("regionId", regionId);
+				jsonObject.add(getUUID().toString(), playerobj);
 				FileWriter file;
 				try {
 					file = new FileWriter(NashboroughPlugin.APPLICATION_JSON_PATH);
